@@ -124,6 +124,8 @@ class ProyekManager(QMainWindow):
             self.proyekTable.insertRow(row)
             for col_idx, col in enumerate(columns_to_display):
                 data = proyek[col]
+                if col == 6:
+                    data = f"Rp. {data}"
                 self.proyekTable.setItem(
                     row, col_idx, QTableWidgetItem(str(data)))
 
