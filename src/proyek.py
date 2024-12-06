@@ -1,13 +1,11 @@
-from PyQt5.QtWidgets import (
+from PyQt5.QtWidgets import ( # type: ignore
     QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QPushButton,
-    QTableWidget, QTableWidgetItem, QComboBox, QWidget, QDialog, QLabel, QLineEdit, QDateEdit, QSpinBox,
-    QMessageBox
+    QTableWidget, QTableWidgetItem, QComboBox, QWidget, QDialog, QLabel, QLineEdit, QDateEdit, QSpinBox
 )
-from PyQt5.QtCore import QDate
+from PyQt5.QtCore import QDate # type: ignore
 import sys
-import database
+import database  # Replace with your database module
 
-STATUS_OPTIONS = ["Belum Dimulai", "Sedang Berjalan", "Selesai"]
 
 class AddProyekDialog(QDialog):
     def __init__(self, parent=None):
@@ -17,13 +15,11 @@ class AddProyekDialog(QDialog):
 
         layout = QVBoxLayout()
 
-        # Input fields
+        # tempat input
         self.namaInput = QLineEdit()
-        self.namaInput.setPlaceholderText("Nama Proyek")
+        self.namaInput.setPlaceholderText("Enter Proyek Name")
         self.deskripsiInput = QLineEdit()
-        self.deskripsiInput.setPlaceholderText("Deskripsi Proyek")
-        self.statusInput = QComboBox()
-        self.statusInput.addItems(STATUS_OPTIONS)
+        self.deskripsiInput.setPlaceholderText("Enter Proyek Description")
         self.tanggalMulaiInput = QDateEdit()
         self.tanggalMulaiInput.setCalendarPopup(True)
         self.tanggalMulaiInput.setDate(QDate.currentDate())
@@ -35,13 +31,11 @@ class AddProyekDialog(QDialog):
         self.budgetInput.setPrefix("Rp ")
         self.budgetInput.setSingleStep(10000)
 
-        # Layout
+        # layout tambah proyek
         layout.addWidget(QLabel("Nama Proyek"))
         layout.addWidget(self.namaInput)
         layout.addWidget(QLabel("Deskripsi Proyek"))
         layout.addWidget(self.deskripsiInput)
-        layout.addWidget(QLabel("Status"))
-        layout.addWidget(self.statusInput)
         layout.addWidget(QLabel("Tanggal Mulai"))
         layout.addWidget(self.tanggalMulaiInput)
         layout.addWidget(QLabel("Tanggal Selesai"))
@@ -49,6 +43,7 @@ class AddProyekDialog(QDialog):
         layout.addWidget(QLabel("Budget (Rupiah)"))
         layout.addWidget(self.budgetInput)
 
+        # tombol tambah proyek
         addButton = QPushButton("Tambah")
         addButton.clicked.connect(self.addProyek)
         layout.addWidget(addButton)
@@ -56,12 +51,13 @@ class AddProyekDialog(QDialog):
         self.setLayout(layout)
 
     def addProyek(self):
+        """Collect data and pass it to the main window."""
         nama = self.namaInput.text().strip()
         deskripsi = self.deskripsiInput.text().strip()
-        status = self.statusInput.currentText()
         tanggal_mulai = self.tanggalMulaiInput.date().toString("yyyy-MM-dd")
         tanggal_selesai = self.tanggalSelesaiInput.date().toString("yyyy-MM-dd")
         budget = self.budgetInput.value()
+        status = "Belum Dimulai"  # Automatically set
 
         if nama and deskripsi:
             self.parent().addProyekToDatabase(
@@ -69,7 +65,8 @@ class AddProyekDialog(QDialog):
             )
             self.accept()
         else:
-            QMessageBox.warning(self, "Warning", "Mohon isi semua field")
+            print("Please fill all fields.")
+
 
 class ProyekManager(QMainWindow):
     def __init__(self):
@@ -81,29 +78,27 @@ class ProyekManager(QMainWindow):
 
         mainLayout = QVBoxLayout()
 
-        # Filter
+        # Dropdown untuk filter
         filterLayout = QHBoxLayout()
         filterLabel = QLabel("Filter by Status:")
         self.filterDropdown = QComboBox()
-        self.filterDropdown.addItem("All")
-        self.filterDropdown.addItems(STATUS_OPTIONS)
+        self.filterDropdown.addItems(
+            ["All", "Selesai", "Sedang Berjalan", "Belum Dimulai"])
         self.filterDropdown.currentTextChanged.connect(self.loadProyek)
         filterLayout.addWidget(filterLabel)
         filterLayout.addWidget(self.filterDropdown)
         mainLayout.addLayout(filterLayout)
 
-        # Table
-        self.proyekTable = QTableWidget(0, 7)  # Added one column for delete button
-        self.proyekTable.setHorizontalHeaderLabels(
-            ["Nama", "Status", "Budget", "Tanggal mulai", "Tanggal selesai", "Rincian", "Action"]
-        )
+        # Tabel Proyek
+        self.proyekTable = QTableWidget(0, 6)
         mainLayout.addWidget(self.proyekTable)
 
-        # Add Project Button
+        # Tombol Tambah Proyek
         addProyekButton = QPushButton("Tambah")
         addProyekButton.clicked.connect(self.openAddProyekDialog)
         mainLayout.addWidget(addProyekButton)
 
+        # Main Container
         container = QWidget()
         container.setLayout(mainLayout)
         self.setCentralWidget(container)
@@ -111,50 +106,45 @@ class ProyekManager(QMainWindow):
         self.loadProyek()
 
     def loadProyek(self):
+        """Load projects from the database into the table."""
         self.proyekTable.setRowCount(0)
-        
+        self.proyekTable.setColumnCount(6)
+        self.proyekTable.setHorizontalHeaderLabels(
+            ["Nama", "Status", "Budget", "Tanggal mulai", "Tanggal selesai", "Rincian"])
+
         filter_status = self.filterDropdown.currentText()
+
         if filter_status == "All":
             proyek_list = self.database.getAllProyek()
         else:
             proyek_list = self.database.getProyekWithStatus(filter_status)
 
+        columns_to_display = [1, 2, 6, 4, 5]
         for row, proyek in enumerate(proyek_list):
             self.proyekTable.insertRow(row)
-            
-            # Add project data
-            self.proyekTable.setItem(row, 0, QTableWidgetItem(str(proyek[1])))  # Nama
-            self.proyekTable.setItem(row, 1, QTableWidgetItem(str(proyek[2])))  # Status
-            self.proyekTable.setItem(row, 2, QTableWidgetItem(f"Rp. {proyek[6]}"))  # Budget
-            self.proyekTable.setItem(row, 3, QTableWidgetItem(str(proyek[4])))  # Tanggal Mulai
-            self.proyekTable.setItem(row, 4, QTableWidgetItem(str(proyek[5])))  # Tanggal Selesai
-            self.proyekTable.setItem(row, 5, QTableWidgetItem(str(proyek[3])))  # Rincian
-
-            # Add delete button
-            deleteBtn = QPushButton("Delete")
-            deleteBtn.clicked.connect(lambda checked, pid=proyek[0]: self.deleteProyek(pid))
-            self.proyekTable.setCellWidget(row, 6, deleteBtn)
-
-    def deleteProyek(self, proyek_id):
-        reply = QMessageBox.question(self, 'Confirm Delete',
-                                   'Are you sure you want to delete this project?',
-                                   QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-        
-        if reply == QMessageBox.Yes:
-            self.database.deleteProyek(proyek_id)
-            self.loadProyek()
+            for col_idx, col in enumerate(columns_to_display):
+                data = proyek[col]
+                if col == 6:
+                    data = f"Rp. {data}"
+                self.proyekTable.setItem(
+                    row, col_idx, QTableWidgetItem(str(data)))
 
     def openAddProyekDialog(self):
+        """Open a dialog to add a new project."""
         dialog = AddProyekDialog(self)
         dialog.exec_()
 
     def addProyekToDatabase(self, nama, status, deskripsi, tanggal_mulai, tanggal_selesai, budget):
-        self.database.addProyek(nama, status, deskripsi, tanggal_mulai, tanggal_selesai, budget)
+        """Add a new project to the database."""
+        self.database.addProyek(nama, status, deskripsi,
+                                tanggal_mulai, tanggal_selesai, budget)
         self.loadProyek()
 
     def closeEvent(self, event):
+        """Close the database connection on exit."""
         self.database.closeDatabase()
         event.accept()
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
