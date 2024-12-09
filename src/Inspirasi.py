@@ -2,10 +2,14 @@ import flet as ft
 import database
 import base64
 import os
+from datetime import datetime
+
+STATUS_OPTIONS = ["Belum Dimulai", "Sedang Berjalan", "Selesai"]
 
 def show_snackbar(page: ft.Page, message: str):
-    page.snack_bar = ft.SnackBar(content=ft.Text(message))
-    page.snack_bar.open = True
+    snack_bar = ft.SnackBar(content=ft.Text(message))
+    page.overlay.append(snack_bar)
+    snack_bar.open = True
     page.update()
 
 class AddInspirasiDialog(ft.AlertDialog):
@@ -13,29 +17,60 @@ class AddInspirasiDialog(ft.AlertDialog):
         super().__init__()
         self.page = page
         self.on_add_callback = on_add_callback
+        self.file_picker = file_picker
         self.chosen_image_data = None
         self.chosen_image_name = ft.Text("Belum ada gambar yang dipilih.")
-        self.file_picker = file_picker
 
-        self.nama_input = ft.TextField(label="Nama Inspirasi", expand=1)
-        self.deskripsi_input = ft.TextField(
-            label="Deskripsi Inspirasi", multiline=True, min_lines=3, expand=1
+        self.nama_label = ft.Text("Nama Inspirasi", size=14)
+        self.nama_input = ft.TextField(
+            label="Masukkan nama inspirasi",
+            expand=1,
+            width=600,
         )
-        self.referensi_input = ft.TextField(label="Referensi Inspirasi (opsional)", expand=1)
 
+        self.deskripsi_label = ft.Text("Deskripsi Inspirasi", size=14)
+        self.deskripsi_input = ft.TextField(
+            label="Masukkan deskripsi inspirasi",
+            multiline=True,
+            min_lines=2,
+            expand=1,
+            width=600,
+        )
+
+        self.referensi_label = ft.Text("Referensi Inspirasi (opsional)", size=14)
+        self.referensi_input = ft.TextField(
+            label="Masukkan referensi inspirasi",
+            expand=1,
+            width=600,
+        )
+
+        # Button to select image
         self.gambar_button = ft.ElevatedButton(
             "Pilih Gambar",
             on_click=lambda e: self.file_picker.pick_files(allow_multiple=False)
         )
 
-        self.content = ft.Column(
-            [
-                self.nama_input,
-                self.deskripsi_input,
-                self.referensi_input,
-                self.gambar_button,
-                self.chosen_image_name,
-            ]
+        # Content layout with reduced spacing and fixed height
+        self.content = ft.Container(
+            height=500,  # Adjusted fixed height to accommodate labels
+            content=ft.Column(
+                [
+                    self.nama_label,
+                    self.nama_input,
+                    ft.Container(height=10),  # Space between fields
+                    self.deskripsi_label,
+                    self.deskripsi_input,
+                    ft.Container(height=10),
+                    self.referensi_label,
+                    self.referensi_input,
+                    ft.Container(height=10),
+                    self.gambar_button,
+                    self.chosen_image_name,
+                ],
+                spacing=5  # Reduced spacing for a cleaner look
+            ),
+            alignment=ft.alignment.center,
+            padding=ft.padding.all(20),
         )
         self.actions = [
             ft.ElevatedButton(text="Tambah", on_click=self.add_inspirasi),
@@ -78,7 +113,6 @@ class AddInspirasiDialog(ft.AlertDialog):
         self.page.dialog = None
         self.page.update()
 
-
 class EditInspirasiDialog(ft.AlertDialog):
     def __init__(self, page, inspirasi_data, on_update_callback, file_picker):
         super().__init__()
@@ -89,25 +123,60 @@ class EditInspirasiDialog(ft.AlertDialog):
         self.chosen_image_name = ft.Text("Belum ada gambar baru yang dipilih.")
         self.file_picker = file_picker
 
-        self.nama_input = ft.TextField(value=inspirasi_data["inspirasi_nama"], label="Nama Inspirasi", expand=1)
-        self.deskripsi_input = ft.TextField(
-            value=inspirasi_data["inspirasi_deskripsi"], label="Deskripsi Inspirasi", multiline=True, min_lines=3, expand=1
+        # Separate Text labels for each input field
+        self.nama_label = ft.Text("Nama Inspirasi", size=14)
+        self.nama_input = ft.TextField(
+            value=inspirasi_data["inspirasi_nama"],
+            label="Masukkan nama inspirasi",
+            expand=1,
+            width=600,
         )
-        self.referensi_input = ft.TextField(value=inspirasi_data["inspirasi_referensi"], label="Referensi Inspirasi (opsional)", expand=1)
 
+        self.deskripsi_label = ft.Text("Deskripsi Inspirasi", size=14)
+        self.deskripsi_input = ft.TextField(
+            value=inspirasi_data["inspirasi_deskripsi"],
+            label="Masukkan deskripsi inspirasi",
+            multiline=True,
+            min_lines=3,
+            expand=1,
+            width=600,
+        )
+
+        self.referensi_label = ft.Text("Referensi Inspirasi (opsional)", size=14)
+        self.referensi_input = ft.TextField(
+            value=inspirasi_data["inspirasi_referensi"],
+            label="Masukkan referensi inspirasi",
+            expand=1,
+            width=600,
+        )
+
+        # Button to select image
         self.gambar_button = ft.ElevatedButton(
             text="Pilih Gambar (opsional)",
             on_click=lambda e: self.file_picker.pick_files(allow_multiple=False)
         )
 
-        self.content = ft.Column(
-            [
-                self.nama_input,
-                self.deskripsi_input,
-                self.referensi_input,
-                self.gambar_button,
-                self.chosen_image_name,
-            ]
+        # Content layout with labels
+        self.content = ft.Container(
+            height=500,  # Adjusted fixed height
+            content=ft.Column(
+                [
+                    self.nama_label,
+                    self.nama_input,
+                    ft.Container(height=10),
+                    self.deskripsi_label,
+                    self.deskripsi_input,
+                    ft.Container(height=10),
+                    self.referensi_label,
+                    self.referensi_input,
+                    ft.Container(height=10),
+                    self.gambar_button,
+                    self.chosen_image_name,
+                ],
+                spacing=5
+            ),
+            alignment=ft.alignment.center,
+            padding=ft.padding.all(20),
         )
         self.actions = [
             ft.ElevatedButton(text="Simpan", on_click=self.save_changes),
@@ -150,6 +219,7 @@ class EditInspirasiDialog(ft.AlertDialog):
             inspirasi_gambar_blob=self.chosen_image_data,
             inspirasi_referensi=referensi,
         )
+        show_snackbar(self.page, "Inspirasi berhasil diperbarui.")
         self.on_update_callback()
         self.close_dialog(e)
 
@@ -157,7 +227,6 @@ class EditInspirasiDialog(ft.AlertDialog):
         self.open = False
         self.page.dialog = None
         self.page.update()
-
 
 class DetailInspirasiDialog(ft.AlertDialog):
     def __init__(self, page, inspirasi_data, on_update_callback, file_picker):
@@ -167,21 +236,34 @@ class DetailInspirasiDialog(ft.AlertDialog):
         self.on_update_callback = on_update_callback
         self.file_picker = file_picker
 
-        self.content = ft.Column(
-            [
-                ft.Text(f"Nama: {self.inspirasi_data['inspirasi_nama']}", size=20, weight=ft.FontWeight.BOLD),
-                ft.Text(f"Deskripsi: {self.inspirasi_data['inspirasi_deskripsi']}", size=16),
-                (
-                    ft.Text(f"Referensi: {self.inspirasi_data['inspirasi_referensi']}", size=16)
-                    if self.inspirasi_data["inspirasi_referensi"]
-                    else ft.Text("Tidak ada referensi.")
-                ),
-                (
-                    ft.Image(src_base64=self.inspirasi_data["inspirasi_gambar"], fit="contain")
-                    if self.inspirasi_data["inspirasi_gambar"]
-                    else ft.Text("No image provided")
-                ),
-            ]
+        # Content layout similar to ProyekManager's DetailProyekDialog
+        self.content = ft.Container(
+            width=600,
+            height=500,
+            content=ft.Column(
+                [
+                    ft.Text(f"Inspirasi Proyek: {self.inspirasi_data['inspirasi_nama']}", size=20, weight=ft.FontWeight.BOLD),
+                    ft.Divider(),
+                    ft.Text(f"Deskripsi: {self.inspirasi_data['inspirasi_deskripsi']}", size=16),
+                    ft.Text(
+                        f"Referensi: {self.inspirasi_data['inspirasi_referensi']}",
+                        size=16
+                    ) if self.inspirasi_data["inspirasi_referensi"] else ft.Text("Referensi: Tidak ada referensi.", size=16),
+                    ft.Container(
+                        content=ft.Image(
+                            src_base64=self.inspirasi_data["inspirasi_gambar"],
+                            fit="contain",
+                            width=500, 
+                            height=250,  
+                        ) if self.inspirasi_data["inspirasi_gambar"] else ft.Text("No image provided", size=16),
+                        padding=ft.padding.only(top=10),
+                    ),
+                ],
+                spacing=10,
+                alignment=ft.MainAxisAlignment.START,
+            ),
+            alignment=ft.alignment.center,
+            padding=20,
         )
         self.actions = [
             ft.ElevatedButton(text="Edit", on_click=self.open_edit_dialog),
@@ -197,16 +279,28 @@ class DetailInspirasiDialog(ft.AlertDialog):
         self.page.update()
 
     def delete_inspirasi(self, e):
+        confirm = ft.AlertDialog(
+            title=ft.Text("Konfirmasi Hapus"),
+            content=ft.Text("Apakah Anda yakin ingin menghapus inspirasi ini?"),
+            actions=[
+                ft.TextButton("Ya", on_click=lambda e: self.confirm_delete()),
+                ft.TextButton("Tidak", on_click=lambda e: self.close_dialog(e)),
+            ],
+        )
+        self.page.overlay.append(confirm)
+        confirm.open = True
+        self.page.update()
+
+    def confirm_delete(self):
         database.deleteInspirasi(self.inspirasi_data["inspirasi_id"])
+        show_snackbar(self.page, "Inspirasi berhasil dihapus.")
         self.on_update_callback()
-        self.close_dialog(e)
+        self.close_dialog(None)
 
     def close_dialog(self, e):
         self.open = False
         self.page.dialog = None
         self.page.update()
-
-
 
 class InspirasiProyekManager:
     def __init__(self, page: ft.Page, file_picker: ft.FilePicker):
@@ -219,38 +313,54 @@ class InspirasiProyekManager:
         self.total_pages = 1
         self.inspirasi_list = []
 
-        self.title = ft.Text("Daftar Inspirasi Proyek", size=24, weight=ft.FontWeight.BOLD)
-
-        self.add_inspirasi_button = ft.Row(
-            controls=[
-                ft.ElevatedButton(
-                    text="Tambah Inspirasi",
-                    on_click=self.open_add_inspirasi_dialog,
-                )
-            ],
-            alignment=ft.MainAxisAlignment.END
+        # Title container with consistent alignment and padding
+        self.title = ft.Container(
+            content=ft.Text("Daftar Inspirasi Proyek", size=28, weight=ft.FontWeight.BOLD),
+            alignment=ft.alignment.center,
+            padding=ft.padding.all(20),
         )
 
+        # Add Inspirasi button aligned to the right
+        self.add_inspirasi_button = ft.Container(
+            content=ft.Row(
+                controls=[
+                    ft.ElevatedButton(
+                        text="Tambah Inspirasi",
+                        style=ft.ButtonStyle(
+                            color="white",
+                            bgcolor="blue",
+                            padding=ft.padding.symmetric(horizontal=20, vertical=10),
+                        ),
+                        on_click=self.open_add_inspirasi_dialog,
+                    )
+                ],
+                alignment=ft.MainAxisAlignment.END,
+            ),
+            padding=ft.padding.symmetric(horizontal=20, vertical=10),
+        )
+
+        # Inspirasi Table with consistent column spacing, margin, and borders
         self.inspirasi_table = ft.DataTable(
             columns=[
-                ft.DataColumn(ft.Text("Nama")),
-                ft.DataColumn(ft.Text("Deskripsi")),
-                ft.DataColumn(ft.Text("Rincian")),
+                ft.DataColumn(ft.Text("Nama", weight=ft.FontWeight.BOLD)),
+                ft.DataColumn(ft.Text("Deskripsi", weight=ft.FontWeight.BOLD)),
+                ft.DataColumn(ft.Text("Rincian", weight=ft.FontWeight.BOLD)),
             ],
             rows=[],
+            border=ft.border.all(2, "lightgray"),
+            border_radius=10,
+            horizontal_margin=20,
+            column_spacing=100,
         )
 
-        self.inspirasi_table_container = ft.Row(
-            controls=[
-                ft.Container(
-                    content=self.inspirasi_table,
-                    alignment=ft.alignment.center,
-                    width=800,
-                )
-            ],
-            alignment=ft.MainAxisAlignment.CENTER,
+        self.inspirasi_table_container = ft.Container(
+            content=self.inspirasi_table,
+            alignment=ft.alignment.center,
+            padding=ft.padding.symmetric(vertical=20),
+            width=1200,  # Adjusted width for better alignment
         )
 
+        # Pagination buttons with similar spacing and alignment
         self.prev_button = ft.ElevatedButton(
             text="Sebelum",
             on_click=self.prev_page,
@@ -266,18 +376,18 @@ class InspirasiProyekManager:
         self.pagination = ft.Row(
             controls=[self.prev_button, self.page_label, self.next_button],
             alignment=ft.MainAxisAlignment.CENTER,
+            spacing=20,
         )
 
+        # Main column layout
         self.main_column = ft.Column(
             controls=[
-                ft.Row(
-                    controls=[self.title],
-                    alignment=ft.MainAxisAlignment.START,
-                ),
+                self.title,
                 self.add_inspirasi_button,
                 self.inspirasi_table_container,
                 self.pagination,
-            ]
+            ],
+            spacing=20,  # Consistent spacing between sections
         )
 
         self.load_inspirasi()
@@ -287,21 +397,39 @@ class InspirasiProyekManager:
         total_items = len(self.inspirasi_list)
         self.total_pages = max(1, (total_items + self.items_per_page - 1) // self.items_per_page)
 
+        # Adjust current_page if out of bounds
+        if self.current_page > self.total_pages:
+            self.current_page = self.total_pages
+        elif self.current_page < 1:
+            self.current_page = 1
+
         start_idx = (self.current_page - 1) * self.items_per_page
         end_idx = start_idx + self.items_per_page
         paginated_inspirasi = self.inspirasi_list[start_idx:end_idx]
 
         self.inspirasi_table.rows.clear()
+        if not paginated_inspirasi:
+            self.page_label.value = f"Page {self.current_page} of {self.total_pages}"
+            self.prev_button.disabled = self.current_page <= 1
+            self.next_button.disabled = self.current_page >= self.total_pages
+            self.page.update()
+            return
+
         for insp in paginated_inspirasi:
             view_handler = lambda e, insp_id=insp[0]: self.view_rincian(e, insp_id)
             self.inspirasi_table.rows.append(
                 ft.DataRow(
                     cells=[
-                        ft.DataCell(ft.Text(insp[1])),
-                        ft.DataCell(ft.Text(insp[2])),
+                        ft.DataCell(ft.Text(insp[1], size=16)),
+                        ft.DataCell(ft.Text(insp[2], size=16, overflow="ellipsis")),
                         ft.DataCell(
                             ft.ElevatedButton(
                                 text="Lihat",
+                                style=ft.ButtonStyle(
+                                    color="white",
+                                    bgcolor="green",
+                                    padding=ft.padding.symmetric(horizontal=10, vertical=5),
+                                ),
                                 on_click=view_handler,
                             )
                         ),
@@ -323,6 +451,12 @@ class InspirasiProyekManager:
 
     def add_inspirasi_to_database(self, nama, deskripsi, gambar_data, referensi):
         self.database.addInspirasi(nama, deskripsi, gambar_data, referensi)
+        show_snackbar(self.page, "Inspirasi berhasil ditambahkan.")
+        self.refresh_data()
+
+    def refresh_data(self):
+        # Reset to first page after adding new data
+        self.current_page = 1
         self.load_inspirasi()
 
     def view_rincian(self, e, insp_id):
@@ -337,12 +471,13 @@ class InspirasiProyekManager:
                 "inspirasi_referensi": inspirasi[4],
             }
 
-            detail_dialog = DetailInspirasiDialog(self.page, inspirasi_data, self.load_inspirasi, self.file_picker)
+            detail_dialog = DetailInspirasiDialog(self.page, inspirasi_data, self.refresh_data, self.file_picker)
+            self.file_picker.on_result = detail_dialog.on_file_picker_result  # Ensure proper event handling
             self.page.dialog = detail_dialog
             detail_dialog.open = True
             self.page.update()
         else:
-            show_snackbar(self.page, "Inspirasi not found")
+            show_snackbar(self.page, "Inspirasi tidak ditemukan.")
 
     def prev_page(self, e):
         if self.current_page > 1:
@@ -357,22 +492,12 @@ class InspirasiProyekManager:
     def build(self):
         return self.main_column
 
-
 def main(page: ft.Page):
     page.title = "Inspirasi Proyek Manager"
-    # Create one global file picker
     file_picker = ft.FilePicker()
     page.overlay.append(file_picker)
     manager = InspirasiProyekManager(page, file_picker)
     page.add(manager.build())
     page.update()
-
-    # Ensure that any dialog usage sets page.dialog appropriately.
-
-    # If you want the page to have an initial size or other settings:
-    # page.window_width = 1024
-    # page.window_height = 768
-    # page.update()
-
 
 ft.app(target=main)
