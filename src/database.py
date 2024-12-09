@@ -1,11 +1,13 @@
 import sqlite3
 import os
+import threading
 
+db_lock = threading.Lock()
 conn = None
 
 def initializeDatabase(db_name="database.db"):
     global conn
-    conn = sqlite3.connect(db_name)
+    conn = sqlite3.connect(db_name, check_same_thread=False)
     cursor = conn.cursor()
 
     cursor.execute("PRAGMA foreign_keys = ON;")
@@ -320,25 +322,21 @@ def addInspirasi(nama: str, deskripsi: str, gambar_path: str = None, referensi: 
     else:
         print("Database not initialized.")
 
-def getInspirasiById(inspirasi_id:int):
-    global conn
-    if conn:
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT inspirasi_id, inspirasi_nama, inspirasi_deskripsi, inspirasi_gambar, inspirasi_referensi 
-            FROM inspirasi 
-            WHERE inspirasi_id = ?
-        """, (inspirasi_id,))
-        row = cursor.fetchone()
-        if row:
-            print(f"Inspirasi with ID {inspirasi_id} successfully fetched")
-            return row
-        else:
-            print(f"Inspirasi with ID {inspirasi_id} not found")
-            return False
+def getInspirasiById(inspirasi_id: int):
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT inspirasi_id, inspirasi_nama, inspirasi_deskripsi, inspirasi_gambar, inspirasi_referensi 
+        FROM inspirasi 
+        WHERE inspirasi_id = ?
+    """, (inspirasi_id,))
+    row = cursor.fetchone()
+    if row:
+        print(f"Inspirasi with ID {inspirasi_id} successfully fetched")
+        return row
     else:
-        print("Database not initialized.")
+        print(f"Inspirasi with ID {inspirasi_id} not found")
         return False
+
 
 def editInspirasi(inspirasi_id:int, inspirasi_nama: str=None, inspirasi_gambar_blob: bytes=None, inspirasi_referensi:str=None, inspirasi_deskripsi:str=None):
     global conn
