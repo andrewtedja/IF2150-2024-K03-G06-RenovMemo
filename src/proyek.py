@@ -1,9 +1,9 @@
-from PyQt5.QtWidgets import (
+from PyQt5.QtWidgets import ( # type: ignore
     QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QPushButton,
     QTableWidget, QTableWidgetItem, QComboBox, QWidget, QDialog, QLabel, QLineEdit, QDateEdit, QSpinBox,
     QMessageBox
 )
-from PyQt5.QtCore import QDate
+from PyQt5.QtCore import QDate # type: ignore
 import sys
 import database
 
