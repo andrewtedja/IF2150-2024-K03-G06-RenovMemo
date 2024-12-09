@@ -16,47 +16,26 @@ class AddProyekDialog(ft.AlertDialog):
         self.page = page
         self.on_add_callback = on_add_callback
 
-        # Separate Text labels for each input field
         self.nama_label = ft.Text("Nama Proyek", size=14)
-        self.nama_input = ft.TextField(
-            label="Masukkan nama proyek",
-            expand=1,
-            width=600
-        )
+        self.nama_input = ft.TextField(label="Masukkan nama proyek", expand=1, width=600)
 
         self.deskripsi_label = ft.Text("Deskripsi Proyek", size=14)
-        self.deskripsi_input = ft.TextField(
-            label="Masukkan deskripsi proyek",
-            multiline=True,
-            min_lines=3,
-            expand=1,
-            width=600
-        )
+        self.deskripsi_input = ft.TextField(label="Masukkan deskripsi proyek", multiline=True, min_lines=3, expand=1, width=600)
 
         self.status_label = ft.Text("Status Proyek", size=14)
         self.status_input = ft.Dropdown(
             options=[ft.dropdown.Option(status) for status in STATUS_OPTIONS],
             width=600
         )
-        
-        # Separate Text labels for date inputs
+
         self.tanggal_mulai_label = ft.Text("Tanggal Mulai (YYYY-MM-DD)", size=14)
-        self.tanggal_mulai_input = ft.TextField(
-            label="Contoh: 2024-01-01",
-            width=600
-        )
+        self.tanggal_mulai_input = ft.TextField(label="Contoh: 2024-01-01", width=600)
 
         self.tanggal_selesai_label = ft.Text("Tanggal Selesai (YYYY-MM-DD)", size=14)
-        self.tanggal_selesai_input = ft.TextField(
-            label="Contoh: 2024-12-31",
-            width=600
-        )
+        self.tanggal_selesai_input = ft.TextField(label="Contoh: 2024-12-31", width=600)
 
         self.budget_label = ft.Text("Budget (Rupiah)", size=14)
-        self.budget_input = ft.TextField(
-            label="Contoh: 100000",
-            width=600
-        )
+        self.budget_input = ft.TextField(label="Contoh: 100000", width=600)
 
         self.content = ft.Column(
             [
@@ -87,17 +66,16 @@ class AddProyekDialog(ft.AlertDialog):
         tanggal_mulai = self.tanggal_mulai_input.value.strip()
         tanggal_selesai = self.tanggal_selesai_input.value.strip()
         budget = self.budget_input.value.strip()
+        # VALIDASI
 
         if not (nama and deskripsi and status and tanggal_mulai and tanggal_selesai and budget):
             show_snackbar(self.page, "Mohon isi semua field")
             return
 
-        # Validate dates
         if not self.validate_date(tanggal_mulai) or not self.validate_date(tanggal_selesai):
             show_snackbar(self.page, "Format tanggal tidak valid. Gunakan YYYY-MM-DD.")
             return
 
-        # Validate budget
         try:
             budget_value = int(budget)
             if len(budget) > 15:
@@ -106,133 +84,9 @@ class AddProyekDialog(ft.AlertDialog):
         except ValueError:
             show_snackbar(self.page, "Budget harus berupa angka")
             return
+
         self.on_add_callback(nama, status, deskripsi, tanggal_mulai, tanggal_selesai, budget_value)
         self.close_dialog(e)
-
-    def validate_date(self, date_str):
-        try:
-            datetime.strptime(date_str, "%Y-%m-%d")
-            return True
-        except ValueError:
-            return False
-
-    def close_dialog(self, e):
-        self.page.overlay.remove(self)
-        self.page.update()
-
-# class EditProyekDialog(ft.AlertDialog):
-#     def __init__(self, page, proyek_data, on_update_callback):
-#         super().__init__()
-#         self.page = page
-#         self.proyek_id = proyek_data["proyek_id"]
-#         self.on_update_callback = on_update_callback
-
-#         # Separate Text labels for each input field
-#         self.nama_label = ft.Text("Nama Proyek", size=14)
-#         self.nama_input = ft.TextField(
-#             value=proyek_data["nama"],
-#             label="Masukkan nama proyek",
-#             expand=1,
-#             width=600
-#         )
-
-#         self.deskripsi_label = ft.Text("Deskripsi Proyek", size=14)
-#         self.deskripsi_input = ft.TextField(
-#             value=proyek_data["deskripsi"],
-#             label="Masukkan deskripsi proyek",
-#             multiline=True,
-#             min_lines=3,
-#             expand=1,
-#             width=600
-#         )
-
-#         self.status_label = ft.Text("Status Proyek", size=14)
-#         self.status_input = ft.Dropdown(
-#             options=[ft.dropdown.Option(status) for status in STATUS_OPTIONS],
-#             value=proyek_data["status"],
-#             width=600
-#         )
-        
-#         # Separate Text labels for date inputs
-#         self.tanggal_mulai_label = ft.Text("Tanggal Mulai (YYYY-MM-DD)", size=14)
-#         self.tanggal_mulai_input = ft.TextField(
-#             value=proyek_data["tanggal_mulai"],
-#             label="Contoh: 2024-01-01",
-#             width=600
-#         )
-
-#         self.tanggal_selesai_label = ft.Text("Tanggal Selesai (YYYY-MM-DD)", size=14)
-#         self.tanggal_selesai_input = ft.TextField(
-#             value=proyek_data["tanggal_selesai"],
-#             label="Contoh: 2024-12-31",
-#             width=600
-#         )
-
-#         self.budget_label = ft.Text("Budget (Rupiah)", size=14)
-#         self.budget_input = ft.TextField(
-#             value=str(proyek_data["budget"]),
-#             label="Contoh: 100000",
-#             width=600
-#         )
-
-#         self.content = ft.Column(
-#             [
-#                 self.nama_label,
-#                 self.nama_input,
-#                 self.deskripsi_label,
-#                 self.deskripsi_input,
-#                 self.status_label,
-#                 self.status_input,
-#                 self.tanggal_mulai_label,
-#                 self.tanggal_mulai_input,
-#                 self.tanggal_selesai_label,
-#                 self.tanggal_selesai_input,
-#                 self.budget_label,
-#                 self.budget_input,
-#             ],
-#             spacing=10
-#         )
-#         self.actions = [
-#             ft.ElevatedButton(text="Simpan", on_click=self.save_changes),
-#             ft.TextButton(text="Batal", on_click=self.close_dialog),
-#         ]
-
-    # def save_changes(self, e):
-    #     nama = self.nama_input.value.strip()
-    #     deskripsi = self.deskripsi_input.value.strip()
-    #     status = self.status_input.value
-    #     tanggal_mulai = self.tanggal_mulai_input.value.strip()
-    #     tanggal_selesai = self.tanggal_selesai_input.value.strip()
-    #     budget = self.budget_input.value.strip()
-
-    #     if not (nama and deskripsi and status and tanggal_mulai and tanggal_selesai and budget):
-    #         show_snackbar(self.page, "Mohon isi semua field")
-    #         return
-
-    #     # Validate dates
-    #     if not self.validate_date(tanggal_mulai) or not self.validate_date(tanggal_selesai):
-    #         show_snackbar(self.page, "Format tanggal tidak valid. Gunakan YYYY-MM-DD.")
-    #         return
-
-    #     # Validate budget
-    #     try:
-    #         budget_value = int(budget)
-    #     except ValueError:
-    #         show_snackbar(self.page, "Budget harus berupa angka")
-    #         return
-
-    #     database.editProyek(
-    #         proyek_id=self.proyek_id,
-    #         nama=nama,
-    #         status=status,
-    #         deskripsi=deskripsi,
-    #         tanggal_mulai=tanggal_mulai,
-    #         tanggal_selesai=tanggal_selesai,
-    #         budget=budget_value
-    #     )
-
-    #     self.on_update_callback()
-    #     self.close_dialog(e)
 
     def validate_date(self, date_str):
         try:
@@ -272,16 +126,10 @@ class DetailProyekDialog(ft.AlertDialog):
             padding=20,
         )
         self.actions = [
-            ft.ElevatedButton(text="Edit", on_click=self.open_edit_dialog),
+            ft.ElevatedButton(text="Edit"),  
             ft.ElevatedButton(text="Hapus", on_click=self.delete_proyek),
             ft.TextButton(text="Tutup", on_click=self.close_dialog),
         ]
-
-    # def open_edit_dialog(self, e):
-    #     edit_dialog = EditProyekDialog(self.page, self.proyek_data, self.on_update_callback)
-    #     self.page.overlay.append(edit_dialog)
-    #     edit_dialog.open = True
-    #     self.page.update()
 
     def delete_proyek(self, e):
         confirm = ft.AlertDialog(
@@ -309,7 +157,6 @@ class DetailProyekDialog(ft.AlertDialog):
 class ProyekManager:
     def __init__(self, page: ft.Page):
         self.page = page
-        self.page.theme_mode = ft.ThemeMode.DARK
         self.database = database
         self.database.initializeDatabase()
 
@@ -388,7 +235,7 @@ class ProyekManager:
                                 alignment=ft.MainAxisAlignment.START,
                                 spacing=10,
                             ),
-                            self.add_proyek_button,  # Button on the far right
+                            self.add_proyek_button,  
                         ],
                         alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                         expand=True,
@@ -413,7 +260,6 @@ class ProyekManager:
         total_items = len(self.proyek_list)
         self.total_pages = max(1, (total_items + self.items_per_page - 1) // self.items_per_page)
 
-        # Adjust current_page if out of bounds
         if self.current_page > self.total_pages:
             self.current_page = self.total_pages
         elif self.current_page < 1:
@@ -433,7 +279,7 @@ class ProyekManager:
 
         for proyek in paginated_proyek:
             # proyek = [id, nama, status, deskripsi, tgl_mulai, tgl_selesai, budget]
-            view_handler = lambda e, pid=proyek[0]: self.view_rincian(e, pid)
+            view_handler = lambda e, pid=proyek[0]: self.view_rincian(pid)
             self.proyek_table.rows.append(
                 ft.DataRow(
                     cells=[
@@ -462,9 +308,8 @@ class ProyekManager:
         self.next_button.disabled = self.current_page >= self.total_pages
         self.page.update()
 
-    # def view_rincian(self, e, proyek_id):
-    # INI BUAT TUGAS NANTI
-
+    def view_rincian(self, proyek_id):
+        self.page.go(f"/tugas?proyek_id={proyek_id}")
 
     def open_add_proyek_dialog(self, e):
         add_dialog = AddProyekDialog(self.page, self.add_proyek_to_database)
@@ -478,7 +323,6 @@ class ProyekManager:
         self.refresh_data()
 
     def refresh_data(self):
-        # Called after add, edit, or delete
         self.load_proyek(None)
 
     def prev_page(self, e):
@@ -493,11 +337,3 @@ class ProyekManager:
 
     def build(self):
         return self.main_column
-
-def main(page: ft.Page):
-    page.title = "Proyek Manager"
-    manager = ProyekManager(page)
-    page.add(manager.build())
-    page.update()
-
-ft.app(target=main)

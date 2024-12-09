@@ -7,28 +7,52 @@ class RenovMemoNavbar(ft.Row):
         self.page = page
 
         self.controls = [
-            # Logo on the left
-            ft.Text("RenovMemo", size=24, weight=ft.FontWeight.BOLD, expand=1),
+            ft.Container(
+                content=ft.Text(
+                    "RenovMemo", 
+                    size=24, 
+                    weight=ft.FontWeight.W_800, 
+                    color=ft.colors.WHITE
+                ),
+                padding=10,
+            ),
 
             ft.Row(
                 [
-                    ft.ElevatedButton(
-                        text="Proyek",
+                    ft.FilledButton(
+                        content=ft.Text("Proyek", weight=ft.FontWeight.W_500),
                         on_click=lambda e: self.page.go("/proyek"),
-                        style=ft.ButtonStyle(bgcolor=ft.colors.BLUE_100),
+                        style=ft.ButtonStyle(
+                            bgcolor={
+                                ft.MaterialState.DEFAULT: ft.colors.BLUE_600,
+                                ft.MaterialState.HOVERED: ft.colors.BLUE_700,
+                            },
+                            color=ft.colors.WHITE,
+                            shape=ft.RoundedRectangleBorder(radius=8)
+                        ),
+                        height=35,
                     ),
-                    ft.ElevatedButton(
-                        text="Inspirasi",
+                    ft.FilledButton(
+                        content=ft.Text("Inspirasi", weight=ft.FontWeight.W_500),
                         on_click=lambda e: self.page.go("/inspirasi"),
-                        style=ft.ButtonStyle(bgcolor=ft.colors.BLUE_100),
+                        style=ft.ButtonStyle(
+                            bgcolor={
+                                ft.MaterialState.DEFAULT: ft.colors.BLUE_600,
+                                ft.MaterialState.HOVERED: ft.colors.BLUE_700,
+                            },
+                            color=ft.colors.WHITE,
+                            shape=ft.RoundedRectangleBorder(radius=8)
+                        ),
+                        height=35,
                     ),
                 ],
-                alignment=ft.MainAxisAlignment.END,  
-                expand=2,  
-            ),
+                alignment=ft.MainAxisAlignment.CENTER,
+                spacing=15,
+            )
         ]
 
         self.alignment = ft.MainAxisAlignment.SPACE_BETWEEN
-        self.padding = ft.padding.only(top=16, bottom=16)
-        self.bgcolor = ft.colors.GREY_800
-        self.text_color = ft.colors.WHITE
+        self.vertical_alignment = ft.CrossAxisAlignment.CENTER
+        self.padding = ft.padding.only(left=20, right=20, top=10, bottom=10)
+        self.bgcolor = ft.colors.BLUE_GREY_900
+        self.height = 50

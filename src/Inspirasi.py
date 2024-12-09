@@ -44,20 +44,18 @@ class AddInspirasiDialog(ft.AlertDialog):
             width=600,
         )
 
-        # Button to select image
         self.gambar_button = ft.ElevatedButton(
             "Pilih Gambar",
             on_click=lambda e: self.file_picker.pick_files(allow_multiple=False)
         )
 
-        # Content layout with reduced spacing and fixed height
         self.content = ft.Container(
-            height=500,  # Adjusted fixed height to accommodate labels
+            height=500,  
             content=ft.Column(
                 [
                     self.nama_label,
                     self.nama_input,
-                    ft.Container(height=10),  # Space between fields
+                    ft.Container(height=10),  
                     self.deskripsi_label,
                     self.deskripsi_input,
                     ft.Container(height=10),
@@ -67,7 +65,7 @@ class AddInspirasiDialog(ft.AlertDialog):
                     self.gambar_button,
                     self.chosen_image_name,
                 ],
-                spacing=5  # Reduced spacing for a cleaner look
+                spacing=5 
             ),
             alignment=ft.alignment.center,
             padding=ft.padding.all(20),
@@ -123,7 +121,6 @@ class EditInspirasiDialog(ft.AlertDialog):
         self.chosen_image_name = ft.Text("Belum ada gambar baru yang dipilih.")
         self.file_picker = file_picker
 
-        # Separate Text labels for each input field
         self.nama_label = ft.Text("Nama Inspirasi", size=14)
         self.nama_input = ft.TextField(
             value=inspirasi_data["inspirasi_nama"],
@@ -150,15 +147,13 @@ class EditInspirasiDialog(ft.AlertDialog):
             width=600,
         )
 
-        # Button to select image
         self.gambar_button = ft.ElevatedButton(
             text="Pilih Gambar (opsional)",
             on_click=lambda e: self.file_picker.pick_files(allow_multiple=False)
         )
 
-        # Content layout with labels
         self.content = ft.Container(
-            height=500,  # Adjusted fixed height
+            height=500,  
             content=ft.Column(
                 [
                     self.nama_label,
@@ -236,7 +231,6 @@ class DetailInspirasiDialog(ft.AlertDialog):
         self.on_update_callback = on_update_callback
         self.file_picker = file_picker
 
-        # Content layout similar to ProyekManager's DetailProyekDialog
         self.content = ft.Container(
             width=600,
             height=500,
@@ -312,15 +306,11 @@ class InspirasiProyekManager:
         self.items_per_page = 5
         self.total_pages = 1
         self.inspirasi_list = []
-
-        # Title container with consistent alignment and padding
         self.title = ft.Container(
             content=ft.Text("Daftar Inspirasi Proyek", size=28, weight=ft.FontWeight.BOLD),
             alignment=ft.alignment.center,
             padding=ft.padding.all(20),
         )
-
-        # Add Inspirasi button aligned to the right
         self.add_inspirasi_button = ft.Container(
             content=ft.Row(
                 controls=[
@@ -339,7 +329,7 @@ class InspirasiProyekManager:
             padding=ft.padding.symmetric(horizontal=20, vertical=10),
         )
 
-        # Inspirasi Table with consistent column spacing, margin, and borders
+        # Inspirasi Table
         self.inspirasi_table = ft.DataTable(
             columns=[
                 ft.DataColumn(ft.Text("Nama", weight=ft.FontWeight.BOLD)),
@@ -357,10 +347,9 @@ class InspirasiProyekManager:
             content=self.inspirasi_table,
             alignment=ft.alignment.center,
             padding=ft.padding.symmetric(vertical=20),
-            width=1200,  # Adjusted width for better alignment
+            width=1200,  
         )
 
-        # Pagination buttons with similar spacing and alignment
         self.prev_button = ft.ElevatedButton(
             text="Sebelum",
             on_click=self.prev_page,
@@ -379,7 +368,6 @@ class InspirasiProyekManager:
             spacing=20,
         )
 
-        # Main column layout
         self.main_column = ft.Column(
             controls=[
                 self.title,
@@ -387,7 +375,7 @@ class InspirasiProyekManager:
                 self.inspirasi_table_container,
                 self.pagination,
             ],
-            spacing=20,  # Consistent spacing between sections
+            spacing=20, 
         )
 
         self.load_inspirasi()
@@ -397,7 +385,7 @@ class InspirasiProyekManager:
         total_items = len(self.inspirasi_list)
         self.total_pages = max(1, (total_items + self.items_per_page - 1) // self.items_per_page)
 
-        # Adjust current_page if out of bounds
+        # Pagination
         if self.current_page > self.total_pages:
             self.current_page = self.total_pages
         elif self.current_page < 1:
@@ -455,7 +443,6 @@ class InspirasiProyekManager:
         self.refresh_data()
 
     def refresh_data(self):
-        # Reset to first page after adding new data
         self.current_page = 1
         self.load_inspirasi()
 
@@ -472,7 +459,7 @@ class InspirasiProyekManager:
             }
 
             detail_dialog = DetailInspirasiDialog(self.page, inspirasi_data, self.refresh_data, self.file_picker)
-            self.file_picker.on_result = detail_dialog.on_file_picker_result  # Ensure proper event handling
+            self.file_picker.on_result = detail_dialog.on_file_picker_result  
             self.page.dialog = detail_dialog
             detail_dialog.open = True
             self.page.update()
@@ -500,4 +487,3 @@ def main(page: ft.Page):
     page.add(manager.build())
     page.update()
 
-ft.app(target=main)

@@ -144,7 +144,11 @@ def getProyek(proyek_id:int):
     global conn
     if conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT 1 FROM proyek WHERE proyek_id = ?", (proyek_id,))
+        cursor.execute("""
+            SELECT proyek_nama, proyek_status, proyek_deskripsi, proyek_mulai, proyek_selesai, proyek_budget 
+            FROM proyek 
+            WHERE proyek_id = ?
+        """, (proyek_id,))
         row = cursor.fetchone()
         if row:
             print(f"Proyek with ID {proyek_id} successfully fetched")
@@ -451,7 +455,6 @@ def migrateInspirasiTableToBlob():
     cursor.execute('ALTER TABLE inspirasi_new RENAME TO inspirasi')
     conn.commit()
     print("Migrated 'inspirasi' table to store images as BLOBs.")
-
 
 def deleteAllData():
     global conn
