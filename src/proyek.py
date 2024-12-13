@@ -99,6 +99,89 @@ class AddProyekDialog(ft.AlertDialog):
         self.page.overlay.remove(self)
         self.page.update()
 
+class EditProyekDialog(ft.AlertDialog):
+    def __init__(self, page, proyek_data, on_update_callback):
+        super().__init__()
+        self.page = page
+        self.proyek_data = proyek_data
+        self.on_update_callback = on_update_callback
+
+        self.nama_input = ft.TextField(value=proyek_data["nama"], label="Nama Proyek", expand=1, width=600)
+        self.deskripsi_input = ft.TextField(value=proyek_data["deskripsi"], label="Deskripsi Proyek", multiline=True, min_lines=3, expand=1, width=600)
+        self.status_input = ft.Dropdown(
+            options=[ft.dropdown.Option(status) for status in STATUS_OPTIONS],
+            value=proyek_data["status"],
+            width=600
+        )
+        self.tanggal_mulai_input = ft.TextField(value=proyek_data["tanggal_mulai"], label="Tanggal Mulai (YYYY-MM-DD)", width=600)
+        self.tanggal_selesai_input = ft.TextField(value=proyek_data["tanggal_selesai"], label="Tanggal Selesai (YYYY-MM-DD)", width=600)
+        self.budget_input = ft.TextField(value=str(proyek_data["budget"]), label="Budget (Rupiah)", width=600)
+
+        self.content = ft.Column(
+            [
+                self.nama_input,
+                self.deskripsi_input,
+                self.status_input,
+                self.tanggal_mulai_input,
+                self.tanggal_selesai_input,
+                self.budget_input,
+            ],
+            spacing=10
+        )
+        self.actions = [
+            ft.ElevatedButton(text="Simpan", on_click=self.save_changes),
+            ft.TextButton(text="Batal", on_click=self.close_dialog),
+        ]
+
+    def save_changes(self, e):
+        nama = self.nama_input.value.strip()
+        deskripsi = self.deskripsi_input.value.strip()
+        status = self.status_input.value
+        tanggal_mulai = self.tanggal_mulai_input.value.strip()
+        tanggal_selesai = self.tanggal_selesai_input.value.strip()
+        budget = self.budget_input.value.strip()
+
+        if not (nama and deskripsi and status and tanggal_mulai and tanggal_selesai and budget):
+            show_snackbar(self.page, "Mohon isi semua field")
+            return
+
+        if not self.validate_date(tanggal_mulai) or not self.validate_date(tanggal_selesai):
+            show_snackbar(self.page, "Format tanggal tidak valid. Gunakan YYYY-MM-DD.")
+            return
+
+        try:
+            budget_value = int(budget)
+            if len(budget) > 15:
+                show_snackbar(self.page, "Budget terlalu mahal!")
+                return
+        except ValueError:
+            show_snackbar(self.page, "Budget harus berupa angka")
+            return
+
+        database.editProyek(
+            proyek_id=self.proyek_data["proyek_id"],
+            proyek_nama=nama,
+            proyek_status=status,
+            proyek_deskripsi=deskripsi,
+            proyek_mulai=tanggal_mulai,
+            proyek_selesai=tanggal_selesai,
+            proyek_budget=budget_value
+        )
+        show_snackbar(self.page, "Proyek berhasil diperbarui.")
+        self.on_update_callback()
+        self.close_dialog(e)
+
+    def validate_date(self, date_str):
+        try:
+            datetime.strptime(date_str, "%Y-%m-%d")
+            return True
+        except ValueError:
+            return False
+
+    def close_dialog(self, e):
+        self.page.overlay.remove(self)
+        self.page.update()
+
 class DetailProyekDialog(ft.AlertDialog):
     def __init__(self, page, proyek_data, on_update_callback):
         super().__init__()
@@ -126,18 +209,24 @@ class DetailProyekDialog(ft.AlertDialog):
             padding=20,
         )
         self.actions = [
-            ft.ElevatedButton(text="Edit"),  
+            ft.ElevatedButton(text="Edit", on_click=self.open_edit_dialog),
             ft.ElevatedButton(text="Hapus", on_click=self.delete_proyek),
             ft.TextButton(text="Tutup", on_click=self.close_dialog),
         ]
+
+    def open_edit_dialog(self, e):
+        edit_dialog = EditProyekDialog(self.page, self.proyek_data, self.on_update_callback)
+        self.page.overlay.append(edit_dialog)
+        edit_dialog.open = True
+        self.page.update()
 
     def delete_proyek(self, e):
         confirm = ft.AlertDialog(
             title=ft.Text("Konfirmasi Hapus"),
             content=ft.Text("Apakah Anda yakin ingin menghapus proyek ini?"),
             actions=[
-                ft.TextButton("Ya", on_click=lambda e: self.confirm_delete()),
-                ft.TextButton("Tidak", on_click=lambda e: self.close_dialog(e)),
+            ft.TextButton("Ya", on_click=lambda e: [self.confirm_delete(), self.close_dialog(e)]),
+            ft.TextButton("Tidak", on_click=lambda e: self.close_dialog(e)),
             ],
         )
         self.page.overlay.append(confirm)
@@ -195,7 +284,7 @@ class ProyekManager:
                 ft.DataColumn(ft.Text("Budget", weight=ft.FontWeight.BOLD)),
                 ft.DataColumn(ft.Text("Mulai", weight=ft.FontWeight.BOLD)),
                 ft.DataColumn(ft.Text("Selesai", weight=ft.FontWeight.BOLD)),
-                ft.DataColumn(ft.Text("Rincian", weight=ft.FontWeight.BOLD)),
+                ft.DataColumn(ft.Text("Aksi", weight=ft.FontWeight.BOLD)),
             ],
             rows=[],
             border=ft.border.all(2, "lightgray"),
@@ -280,6 +369,8 @@ class ProyekManager:
         for proyek in paginated_proyek:
             # proyek = [id, nama, status, deskripsi, tgl_mulai, tgl_selesai, budget]
             view_handler = lambda e, pid=proyek[0]: self.view_rincian(pid)
+            edit_handler = lambda e, pdata=proyek: self.open_edit_proyek_dialog(e, pdata)
+            delete_handler = lambda e, pid=proyek[0]: self.open_delete_proyek_dialog(e, pid)
             self.proyek_table.rows.append(
                 ft.DataRow(
                     cells=[
@@ -289,14 +380,37 @@ class ProyekManager:
                         ft.DataCell(ft.Text(proyek[4], size=16)),
                         ft.DataCell(ft.Text(proyek[5], size=16)),
                         ft.DataCell(
-                            ft.ElevatedButton(
-                                text="Lihat",
-                                style=ft.ButtonStyle(
-                                    color="white",
-                                    bgcolor="green",
-                                    padding=ft.padding.symmetric(horizontal=10, vertical=5),
-                                ),
-                                on_click=view_handler,
+                            ft.Row(
+                                [
+                                    ft.ElevatedButton(
+                                        text="Lihat",
+                                        style=ft.ButtonStyle(
+                                            color="white",
+                                            bgcolor="green",
+                                            padding=ft.padding.symmetric(horizontal=10, vertical=5),
+                                        ),
+                                        on_click=view_handler,
+                                    ),
+                                    ft.ElevatedButton(
+                                        text="Edit",
+                                        style=ft.ButtonStyle(
+                                            color="white",
+                                            bgcolor="blue",
+                                            padding=ft.padding.symmetric(horizontal=10, vertical=5),
+                                        ),
+                                        on_click=edit_handler,
+                                    ),
+                                    ft.ElevatedButton(
+                                        text="Hapus",
+                                        style=ft.ButtonStyle(
+                                            color="white",
+                                            bgcolor="red",
+                                            padding=ft.padding.symmetric(horizontal=10, vertical=5),
+                                        ),
+                                        on_click=delete_handler,
+                                    ),
+                                ],
+                                spacing=10,
                             )
                         ),
                     ]
@@ -317,10 +431,49 @@ class ProyekManager:
         add_dialog.open = True
         self.page.update()
 
-    def add_proyek_to_database(self, nama, status, deskripsi, tanggal_mulai, tanggal_selesai, budget):
-        self.database.addProyek(nama, status, deskripsi, tanggal_mulai, tanggal_selesai, budget)
-        show_snackbar(self.page, "Proyek berhasil ditambahkan")
+    def open_edit_proyek_dialog(self, e, proyek_data):
+        proyek_data_dict = {
+            "proyek_id": proyek_data[0],
+            "nama": proyek_data[1],
+            "status": proyek_data[2],
+            "deskripsi": proyek_data[3],
+            "tanggal_mulai": proyek_data[4],
+            "tanggal_selesai": proyek_data[5],
+            "budget": proyek_data[6],
+        }
+        edit_dialog = EditProyekDialog(self.page, proyek_data_dict, self.refresh_data)
+        self.page.overlay.append(edit_dialog)
+        edit_dialog.open = True
+        self.page.update()
+
+    def open_delete_proyek_dialog(self, e, proyek_id):
+        confirm = ft.AlertDialog(
+            title=ft.Text("Konfirmasi Hapus"),
+            content=ft.Text("Apakah Anda yakin ingin menghapus proyek ini?"),
+            actions=[
+                ft.TextButton("Ya", on_click=lambda e: self.delete_proyek(proyek_id)),
+                ft.TextButton("Tidak", on_click=lambda e: self.close_dialog(e)),
+            ],
+        )
+        self.page.overlay.append(confirm)
+        confirm.open = True
+        self.page.update()
+
+    def delete_proyek(self, proyek_id):
+        database.deleteProyek(proyek_id)
+        show_snackbar(self.page, "Proyek berhasil dihapus.")
         self.refresh_data()
+
+    def close_dialog(self, e):
+        self.page.overlay.clear()
+        self.page.update()
+        
+    def add_proyek_to_database(self, nama, status, deskripsi, tanggal_mulai, tanggal_selesai, budget):
+            self.database.addProyek(nama, status, deskripsi, tanggal_mulai, tanggal_selesai, budget)
+            show_snackbar(self.page, "Proyek berhasil ditambahkan")
+            self.page.overlay.clear()
+            self.page.update()
+            self.refresh_data()
 
     def refresh_data(self):
         self.load_proyek(None)

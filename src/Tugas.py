@@ -53,6 +53,58 @@ class AddTugasDialog(ft.AlertDialog):
         self.page.overlay.remove(self)
         self.page.update()
 
+class EditTugasDialog(ft.AlertDialog):
+    def __init__(self, page, tugas_data, on_update_callback):
+        super().__init__()
+        self.page = page
+        self.tugas_data = tugas_data
+        self.on_update_callback = on_update_callback
+
+        self.nama_input = ft.TextField(value=tugas_data["tugas_nama"], label="Nama Tugas", width=400)
+        self.deskripsi_input = ft.TextField(value=tugas_data["tugas_deskripsi"], label="Deskripsi Tugas", multiline=True, min_lines=3, width=400)
+        self.status_input = ft.Dropdown(
+            options=[ft.dropdown.Option(status) for status in STATUS_OPTIONS],
+            value=tugas_data["tugas_status"],
+            label="Status Tugas",
+            width=400
+        )
+
+        self.content = ft.Column([
+            self.nama_input,
+            self.deskripsi_input,
+            self.status_input,
+        ], spacing=10)
+
+        self.actions = [
+            ft.ElevatedButton(text="Simpan", on_click=self.save_changes),
+            ft.TextButton(text="Batal", on_click=self.close_dialog),
+        ]
+
+    def save_changes(self, e):
+        nama = self.nama_input.value.strip()
+        deskripsi = self.deskripsi_input.value.strip()
+        status = self.status_input.value
+
+        if not (nama and status):
+            show_snackbar(self.page, "Mohon isi semua field")
+            return
+
+        database.editTugas(
+            tugas_id=self.tugas_data["tugas_id"],
+            tugas_nama=nama,
+            tugas_status=status,
+            tugas_deskripsi=deskripsi
+        )
+        show_snackbar(self.page, "Tugas berhasil diperbarui.")
+        self.on_update_callback()
+        self.page.update()
+        self.refresh_data()
+        self.close_dialog(e)
+
+    def close_dialog(self, e):
+        self.page.overlay.remove(self)
+        self.page.update()
+
 class TugasManager:
     def __init__(self, page: ft.Page, proyek_id: int):
         self.page = page
@@ -186,6 +238,7 @@ class TugasManager:
         for tugas in paginated_tugas:
             # tugas: (tugas_id, tugas_nama, tugas_deskripsi, tugas_status, proyek_id)
             delete_handler = lambda e, tid=tugas[0]: self.delete_tugas(e, tid)
+            edit_handler = lambda e, tdata=tugas: self.open_edit_tugas_dialog(e, tdata)
             self.tugas_table.rows.append(
                 ft.DataRow(
                     cells=[
@@ -193,14 +246,28 @@ class TugasManager:
                         ft.DataCell(ft.Text(tugas[3], size=16)),
                         ft.DataCell(ft.Text(tugas[2], size=16)),
                         ft.DataCell(
-                            ft.ElevatedButton(
-                                text="Hapus",
-                                style=ft.ButtonStyle(
-                                    color="white",
-                                    bgcolor="red",
-                                    padding=ft.padding.symmetric(horizontal=10, vertical=5),
-                                ),
-                                on_click=delete_handler,
+                            ft.Row(
+                                [
+                                    ft.ElevatedButton(
+                                        text="Edit",
+                                        style=ft.ButtonStyle(
+                                            color="white",
+                                            bgcolor="blue",
+                                            padding=ft.padding.symmetric(horizontal=10, vertical=5),
+                                        ),
+                                        on_click=edit_handler,
+                                    ),
+                                    ft.ElevatedButton(
+                                        text="Hapus",
+                                        style=ft.ButtonStyle(
+                                            color="white",
+                                            bgcolor="red",
+                                            padding=ft.padding.symmetric(horizontal=10, vertical=5),
+                                        ),
+                                        on_click=delete_handler,
+                                    ),
+                                ],
+                                spacing=10,
                             )
                         ),
                     ]
@@ -216,6 +283,18 @@ class TugasManager:
         add_dialog = AddTugasDialog(self.page, self.proyek_id, self.add_tugas_to_database)
         self.page.overlay.append(add_dialog)
         add_dialog.open = True
+        self.page.update()
+
+    def open_edit_tugas_dialog(self, e, tugas_data):
+        tugas_data_dict = {
+            "tugas_id": tugas_data[0],
+            "tugas_nama": tugas_data[1],
+            "tugas_deskripsi": tugas_data[2],
+            "tugas_status": tugas_data[3],
+        }
+        edit_dialog = EditTugasDialog(self.page, tugas_data_dict, self.refresh_data)
+        self.page.overlay.append(edit_dialog)
+        edit_dialog.open = True
         self.page.update()
 
     def add_tugas_to_database(self, nama, status, deskripsi, proyek_id):

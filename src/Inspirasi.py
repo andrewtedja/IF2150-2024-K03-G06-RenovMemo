@@ -280,7 +280,7 @@ class DetailInspirasiDialog(ft.AlertDialog):
             content=ft.Text("Apakah Anda yakin ingin menghapus inspirasi ini?"),
             actions=[
                 # Tombol "Ya" memanggil confirm_delete dengan argumen event
-                ft.TextButton("Ya", on_click=self.confirm_delete),
+                ft.TextButton("Ya", on_click=lambda e: [self.confirm_delete(e), self.close_confirm_dialog(e)]),
                 # Tombol "Tidak" memanggil close_confirm_dialog dengan argumen event
                 ft.TextButton("Tidak", on_click=self.close_confirm_dialog),
             ],
@@ -298,9 +298,12 @@ class DetailInspirasiDialog(ft.AlertDialog):
         # Memanggil callback untuk memperbarui data di manager
         self.on_update_callback()
         # Menutup dialog konfirmasi
+        self.page.overlay.clear()
         self.close_confirm_dialog(e)
         # Menutup dialog detail
         self.close_dialog(e)
+        self.page.update()
+        self.refresh_data()
 
     def close_confirm_dialog(self, e):
         if self.confirm_dialog:
