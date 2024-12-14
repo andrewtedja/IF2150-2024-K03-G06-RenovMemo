@@ -114,7 +114,7 @@ class TugasManager:
     def __init__(self, page: ft.Page, proyek_id: int):
         self.page = page
         self.proyek_id = proyek_id
-        database.initializeDatabase()  # Initialize the database schema
+        database.initializeDatabase()  
 
         self.current_page = 1
         self.items_per_page = 5
@@ -129,7 +129,9 @@ class TugasManager:
             proyek_info = f"Status: {proyek_status} | {proyek_mulai} - {proyek_selesai}"
             budget_text = f"Budget: Rp. {proyek_budget}"
             self.tugas_list = database.getTugasWithProyek(self.proyek_id)
-            # Placeholder for progress bar value; you can calculate based on tugas status
+            
+
+            # PROGRESS BAR (MASI PLACEHOLDER)
             self.progress_bar = ft.ProgressBar(value=0.5, width=400)
 
             self.proyek_info_text = ft.Text(proyek_info, size=14)
@@ -307,10 +309,33 @@ class TugasManager:
         show_snackbar(self.page, "Tugas berhasil ditambahkan")
         self.refresh_data()
 
-    def delete_tugas(self, e, tugas_id):
+    def open_delete_tugas_dialog(self, e, tugas_id):
+        confirm_dialog = ft.AlertDialog(
+            title=ft.Text("Konfirmasi Hapus"),
+            content=ft.Text("Apakah Anda yakin ingin menghapus tugas ini?"),
+            actions=[
+                ft.TextButton("Ya", on_click=lambda e: self.confirm_delete(tugas_id)),
+                ft.TextButton("Tidak", on_click=self.close_dialog),
+            ],
+        )
+        self.page.dialog = confirm_dialog
+        confirm_dialog.open = True
+        self.page.update()
+
+    def confirm_delete(self, tugas_id):
         database.deleteTugas(tugas_id)
-        show_snackbar(self.page, "Tugas berhasil dihapus")
+        show_snackbar(self.page, "Tugas berhasil dihapus.")
         self.refresh_data()
+        self.close_dialog(None)
+
+    def delete_tugas(self, e, tugas_id):
+        self.open_delete_tugas_dialog(e, tugas_id)
+
+    def close_dialog(self, e):
+        if self.page.dialog:
+            self.page.dialog.open = False
+            self.page.dialog = None
+        self.page.update()
 
     def refresh_data(self):
         self.load_tugas()
