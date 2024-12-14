@@ -5,10 +5,11 @@ from datetime import datetime
 STATUS_OPTIONS = ["Belum Dimulai", "Sedang Berjalan", "Selesai"]
 
 def show_snackbar(page: ft.Page, message: str):
-    snack_bar = ft.SnackBar(content=ft.Text(message))
-    page.overlay.append(snack_bar)
-    snack_bar.open = True
-    page.update()
+    if page is not None:
+        snack_bar = ft.SnackBar(content=ft.Text(message))
+        page.overlay.append(snack_bar)
+        snack_bar.open = True
+        page.update()
 
 class AddProyekDialog(ft.AlertDialog):
     def __init__(self, page, on_add_callback):
@@ -87,8 +88,8 @@ class AddProyekDialog(ft.AlertDialog):
 
         self.on_add_callback(nama, status, deskripsi, tanggal_mulai, tanggal_selesai, budget_value)
         show_snackbar(self.page, "Proyek berhasil ditambahkan.")
-        self.close_dialog(e)
-
+        self.close_dialog(e)  # Changed from self.close_add_proyek_dialog(e)
+        
     def validate_date(self, date_str):
         try:
             datetime.strptime(date_str, "%Y-%m-%d")
@@ -100,7 +101,6 @@ class AddProyekDialog(ft.AlertDialog):
         self.open = False
         if self.page:
             self.page.dialog = None
-            self.page.overlay.remove(self)
             self.page.update()
 
 class EditProyekDialog(ft.AlertDialog):
