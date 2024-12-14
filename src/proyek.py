@@ -375,17 +375,24 @@ class ProyekManager:
             return
 
         for proyek in paginated_proyek:
-            # proyek = [id, nama, status, deskripsi, tgl_mulai, tgl_selesai, budget]
+            # action handlers
             view_handler = lambda e, pid=proyek[0]: self.view_rincian(pid)
             edit_handler = lambda e, pdata=proyek: self.open_edit_proyek_dialog(e, pdata)
             delete_handler = lambda e, pid=proyek[0]: self.open_delete_proyek_dialog(e, pid)
             toggle_status_handler = lambda e, pid=proyek[0], status=proyek[2]: self.toggle_proyek_status(pid, status)
+
+            text_color = (
+                "gray" if proyek[2] == "Belum Dimulai" else
+                "orange" if proyek[2] == "Sedang Berjalan" else
+                "green"
+            )
+            # actions
             self.proyek_table.rows.append(
                 ft.DataRow(
                     cells=[
                         ft.DataCell(ft.Text(proyek[1], size=16)),
-                        ft.DataCell(ft.Text(proyek[2], size=16)),
-                        ft.DataCell(ft.Text(f"Rp. {proyek[6]}", size=16)),
+                        ft.DataCell(ft.Text(proyek[2], size=16, color=text_color)),
+                        ft.DataCell(ft.Text(f"Rp. {proyek[6]:,}", size=16)),
                         ft.DataCell(ft.Text(proyek[4], size=16)),
                         ft.DataCell(ft.Text(proyek[5], size=16)),
                         ft.DataCell(
@@ -409,31 +416,24 @@ class ProyekManager:
                                         ),
                                         on_click=edit_handler,
                                     ),
-                                    ft.ElevatedButton(
-                                        text="Tandai Selesai" if proyek[2] != "Selesai" else "Tandai Belum Selesai",
-                                        style=ft.ButtonStyle(
-                                            color="white",
-                                            bgcolor="orange",
-                                            padding=ft.padding.symmetric(horizontal=10, vertical=5),
-                                        ),
-                                        on_click=toggle_status_handler,
-                                    ),
-                                    ft.ElevatedButton(
-                                        text="Hapus",
-                                        style=ft.ButtonStyle(
-                                            color="white",
-                                            bgcolor="red",
-                                            padding=ft.padding.symmetric(horizontal=10, vertical=5),
-                                        ),
+                                    ft.IconButton(
+                                        icon=ft.icons.DELETE,  
+                                        tooltip="Hapus Proyek",
                                         on_click=delete_handler,
                                     ),
+                                    ft.IconButton(
+                                        icon=ft.icons.DONE if proyek[2] != "Selesai" else ft.icons.CANCEL,  # Status toggle
+                                        tooltip="Tandai Selesai" if proyek[2] != "Selesai" else "Tandai Belum Selesai",
+                                        on_click=toggle_status_handler,
+                                    ),
                                 ],
-                                spacing=10,
+                                spacing=5,  
                             )
                         ),
                     ]
                 )
             )
+
 
         self.page_label.value = f"Page {self.current_page} of {self.total_pages}"
         self.prev_button.disabled = self.current_page <= 1
