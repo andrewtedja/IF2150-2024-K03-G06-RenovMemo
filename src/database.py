@@ -19,8 +19,7 @@ def initializeDatabase(db_name="database.db"):
         proyek_status TEXT NOT NULL,
         proyek_deskripsi TEXT,
         proyek_mulai TEXT,
-        proyek_selesai TEXT,
-        proyek_budget INTEGER
+        proyek_selesai TEXT
     )
     ''')
 
@@ -31,6 +30,8 @@ def initializeDatabase(db_name="database.db"):
         tugas_deskripsi TEXT,
         tugas_status TEXT NOT NULL,
         proyek_id INTEGER NOT NULL,
+        budget INTEGER DEFAULT 0,
+        estimated INTEGER DEFAULT 0,
         FOREIGN KEY (proyek_id) REFERENCES proyek (proyek_id) ON DELETE CASCADE
     )
     ''')
@@ -59,16 +60,16 @@ def closeDatabase():
 
 # Proyek Functions
 
-def addProyek(proyek_nama: str, proyek_status: str, proyek_deskripsi: str = None, proyek_mulai: str = None, proyek_selesai: str = None, proyek_budget: int = None):
+def addProyek(proyek_nama: str, proyek_status: str, proyek_deskripsi: str = None, proyek_mulai: str = None, proyek_selesai: str = None):
     global conn
     if conn:
         try:
             cursor = conn.cursor()
             print(f"Starting INSERT for proyek: {proyek_nama}")
             cursor.execute('''
-            INSERT INTO proyek (proyek_nama, proyek_status, proyek_deskripsi, proyek_mulai, proyek_selesai, proyek_budget)
-            VALUES (?, ?, ?, ?, ?, ?)
-            ''', (proyek_nama, proyek_status, proyek_deskripsi, proyek_mulai, proyek_selesai, proyek_budget))
+            INSERT INTO proyek (proyek_nama, proyek_status, proyek_deskripsi, proyek_mulai, proyek_selesai)
+            VALUES (?, ?, ?, ?, ?)
+            ''', (proyek_nama, proyek_status, proyek_deskripsi, proyek_mulai, proyek_selesai))
             conn.commit()
             print(f"Proyek '{proyek_nama}' added successfully.")
         except Exception as e:
@@ -77,7 +78,7 @@ def addProyek(proyek_nama: str, proyek_status: str, proyek_deskripsi: str = None
         print("Database not initialized.")
 
 
-def editProyek(proyek_id:int, proyek_nama:str=None, proyek_status:str=None, proyek_deskripsi:str=None, proyek_mulai:str=None, proyek_selesai:str=None, proyek_budget:int=None):
+def editProyek(proyek_id:int, proyek_nama:str=None, proyek_status:str=None, proyek_deskripsi:str=None, proyek_mulai:str=None, proyek_selesai:str=None):
     global conn
     if conn:
         cursor = conn.cursor()
@@ -104,18 +105,18 @@ def editProyek(proyek_id:int, proyek_nama:str=None, proyek_status:str=None, proy
         if proyek_selesai is not None:
             updates.append(" proyek_selesai = ?")
             params.append(proyek_selesai)
-        if proyek_budget is not None:
-            updates.append(" proyek_budget = ?")
-            params.append(proyek_budget)
         
         if updates:
             query += ",".join(updates)
             query += " WHERE proyek_id = ?"
             params.append(proyek_id)
             
-            cursor.execute(query, params)
-            conn.commit()
-            print(f"Proyek with ID {proyek_id} updated successfully.")
+            try:
+                cursor.execute(query, params)
+                conn.commit()
+                print(f"Proyek with ID {proyek_id} updated successfully.")
+            except Exception as e:
+                print(f"Error while updating proyek: {e}")
         else:
             print("No fields provided to update.")
     else:
@@ -129,9 +130,12 @@ def deleteProyek(proyek_id:int):
         if not boolean:
             print(f"Proyek with ID {proyek_id} not found.")
             return
-        cursor.execute("DELETE FROM proyek WHERE proyek_id = ?", (proyek_id,))
-        conn.commit()
-        print(f"Proyek with ID {proyek_id} deleted successfully.")
+        try:
+            cursor.execute("DELETE FROM proyek WHERE proyek_id = ?", (proyek_id,))
+            conn.commit()
+            print(f"Proyek with ID {proyek_id} deleted successfully.")
+        except Exception as e:
+            print(f"Error while deleting proyek: {e}")
     else:
         print("Database not initialized.")
 
@@ -152,7 +156,7 @@ def getProyek(proyek_id:int):
     if conn:
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT proyek_nama, proyek_status, proyek_deskripsi, proyek_mulai, proyek_selesai, proyek_budget 
+            SELECT proyek_nama, proyek_status, proyek_deskripsi, proyek_mulai, proyek_selesai 
             FROM proyek 
             WHERE proyek_id = ?
         """, (proyek_id,))
@@ -183,9 +187,58 @@ def checkProyekId(proyek_id:int) -> bool:
     row = getProyek(proyek_id)
     return bool(row)
 
+# Migration Function for Proyek Table
+
+def migrateProyekTable():
+    global conn
+    if not conn:
+        print("Database not initialized.")
+        return
+    cursor = conn.cursor()
+
+    # Check existing columns in proyek table
+    cursor.execute("PRAGMA table_info(proyek)")
+    columns = cursor.fetchall()
+    existing_columns = [col[1].lower() for col in columns]
+
+    # If 'budget' does not exist, no migration needed
+    if 'budget' not in existing_columns:
+        print("'proyek' table does not have 'budget' column. No migration required.")
+        return
+
+    print("Migrating 'proyek' table: Removing 'budget' field.")
+
+    # Create new table without 'budget' field
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS proyek_new (
+            proyek_id INTEGER PRIMARY KEY,
+            proyek_nama TEXT NOT NULL,
+            proyek_status TEXT NOT NULL,
+            proyek_deskripsi TEXT,
+            proyek_mulai TEXT,
+            proyek_selesai TEXT
+        )
+    ''')
+
+    # Transfer data from old table to new table
+    cursor.execute('''
+        INSERT INTO proyek_new (proyek_id, proyek_nama, proyek_status, proyek_deskripsi, proyek_mulai, proyek_selesai)
+        SELECT proyek_id, proyek_nama, proyek_status, proyek_deskripsi, proyek_mulai, proyek_selesai
+        FROM proyek
+    ''')
+
+    # Drop old table
+    cursor.execute("DROP TABLE proyek")
+
+    # Rename new table to original name
+    cursor.execute("ALTER TABLE proyek_new RENAME TO proyek")
+
+    conn.commit()
+    print("Migration of 'proyek' table completed successfully.")
+
 # Tugas Functions
 
-def addTugas(tugas_nama:str, tugas_status:str, proyek_id:int, tugas_deskripsi:str=None):
+def addTugas(tugas_nama:str, tugas_status:str, proyek_id:int, tugas_deskripsi:str=None, budget: int = 0, estimated: int = 0):
     global conn
     if conn:
         cursor = conn.cursor()
@@ -194,16 +247,19 @@ def addTugas(tugas_nama:str, tugas_status:str, proyek_id:int, tugas_deskripsi:st
         if not boolean:
             print(f"Invalid foreign key proyek_id, Tugas '{tugas_nama}' not added.")
             return
-        cursor.execute('''
-    INSERT INTO tugas (tugas_nama, tugas_deskripsi, tugas_status, proyek_id)
-    VALUES (?, ?, ?, ?)
-    ''', (tugas_nama, tugas_deskripsi, tugas_status, proyek_id))
-        conn.commit()
-        print(f"Tugas '{tugas_nama}' added successfully.")
+        try:
+            cursor.execute('''
+                INSERT INTO tugas (tugas_nama, tugas_deskripsi, tugas_status, proyek_id, budget, estimated)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (tugas_nama, tugas_deskripsi, tugas_status, proyek_id, budget, estimated))
+            conn.commit()
+            print(f"Tugas '{tugas_nama}' added successfully.")
+        except Exception as e:
+            print(f"Error while adding tugas: {e}")
     else:
         print("Database not initialized.")
 
-def editTugas(tugas_id:int, tugas_nama:str=None, tugas_status:str=None, tugas_deskripsi:str=None, proyek_id:int=None):
+def editTugas(tugas_id:int, tugas_nama:str=None, tugas_status:str=None, tugas_deskripsi:str=None, proyek_id:int=None, budget: int = None, estimated: int = None):
     global conn
     if conn:
         cursor = conn.cursor()
@@ -232,14 +288,24 @@ def editTugas(tugas_id:int, tugas_nama:str=None, tugas_status:str=None, tugas_de
             else:
                 print(f"Invalid foreign key proyek_id, Tugas with ID '{tugas_id}' not updated.")
                 return
+        if budget is not None:
+            updates.append(" budget = ?")
+            params.append(budget)
+        if estimated is not None:
+            updates.append(" estimated = ?")
+            params.append(estimated)
+        
         if updates:
             query += ",".join(updates)
             query += " WHERE tugas_id = ?"
             params.append(tugas_id)
             
-            cursor.execute(query, params)
-            conn.commit()
-            print(f"Tugas with ID {tugas_id} updated successfully.")
+            try:
+                cursor.execute(query, params)
+                conn.commit()
+                print(f"Tugas with ID {tugas_id} updated successfully.")
+            except Exception as e:
+                print(f"Error while updating tugas: {e}")
         else:
             print("No fields provided to update.")
     else:
@@ -253,9 +319,12 @@ def deleteTugas(tugas_id:int):
         if not boolean:
             print(f"Tugas with ID {tugas_id} not found.")
             return
-        cursor.execute("DELETE FROM tugas WHERE tugas_id = ?", (tugas_id,))
-        conn.commit()
-        print(f"Tugas with ID {tugas_id} deleted successfully.")
+        try:
+            cursor.execute("DELETE FROM tugas WHERE tugas_id = ?", (tugas_id,))
+            conn.commit()
+            print(f"Tugas with ID {tugas_id} deleted successfully.")
+        except Exception as e:
+            print(f"Error while deleting tugas: {e}")
     else:
         print("Database not initialized.")
 
@@ -309,28 +378,36 @@ def addInspirasi(nama: str, deskripsi: str, gambar_data: bytes = None, referensi
     global conn
     if conn:
         cursor = conn.cursor()
-        cursor.execute('''
-            INSERT INTO inspirasi (inspirasi_nama, inspirasi_deskripsi, inspirasi_gambar, inspirasi_referensi)
-            VALUES (?, ?, ?, ?)
-        ''', (nama, deskripsi, gambar_data, referensi))
-        conn.commit()
-        print(f"Inspirasi '{nama}' added successfully.")
+        try:
+            cursor.execute('''
+                INSERT INTO inspirasi (inspirasi_nama, inspirasi_deskripsi, inspirasi_gambar, inspirasi_referensi)
+                VALUES (?, ?, ?, ?)
+            ''', (nama, deskripsi, gambar_data, referensi))
+            conn.commit()
+            print(f"Inspirasi '{nama}' added successfully.")
+        except Exception as e:
+            print(f"Error while adding inspirasi: {e}")
     else:
         print("Database not initialized.")
 
 def getInspirasiById(inspirasi_id: int):
-    cursor = conn.cursor()
-    cursor.execute("""
-        SELECT inspirasi_id, inspirasi_nama, inspirasi_deskripsi, inspirasi_gambar, inspirasi_referensi 
-        FROM inspirasi 
-        WHERE inspirasi_id = ?
-    """, (inspirasi_id,))
-    row = cursor.fetchone()
-    if row:
-        print(f"Inspirasi with ID {inspirasi_id} successfully fetched")
-        return row
+    global conn
+    if conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT inspirasi_id, inspirasi_nama, inspirasi_deskripsi, inspirasi_gambar, inspirasi_referensi 
+            FROM inspirasi 
+            WHERE inspirasi_id = ?
+        """, (inspirasi_id,))
+        row = cursor.fetchone()
+        if row:
+            print(f"Inspirasi with ID {inspirasi_id} successfully fetched")
+            return row
+        else:
+            print(f"Inspirasi with ID {inspirasi_id} not found")
+            return False
     else:
-        print(f"Inspirasi with ID {inspirasi_id} not found")
+        print("Database not initialized.")
         return False
 
 
@@ -380,9 +457,12 @@ def deleteInspirasi(inspirasi_id:int):
         if not boolean:
             print(f"Inspirasi with ID {inspirasi_id} not found.")
             return
-        cursor.execute("DELETE FROM inspirasi WHERE inspirasi_id = ?", (inspirasi_id,))
-        conn.commit()
-        print(f"Inspirasi with ID {inspirasi_id} deleted successfully.")
+        try:
+            cursor.execute("DELETE FROM inspirasi WHERE inspirasi_id = ?", (inspirasi_id,))
+            conn.commit()
+            print(f"Inspirasi with ID {inspirasi_id} deleted successfully.")
+        except Exception as e:
+            print(f"Error while deleting inspirasi: {e}")
     else:
         print("Database not initialized.")
 
@@ -454,15 +534,57 @@ def deleteAllData():
     global conn
     if conn:
         cursor = conn.cursor()
-        cursor.execute("DELETE FROM inspirasi")
-        cursor.execute("DELETE FROM tugas")
-        cursor.execute("DELETE FROM proyek")
-        conn.commit()
-        print("All data from inspirasi, tugas, and proyek tables have been deleted.")
+        try:
+            cursor.execute("DELETE FROM inspirasi")
+            cursor.execute("DELETE FROM tugas")
+            cursor.execute("DELETE FROM proyek")
+            conn.commit()
+            print("All data from inspirasi, tugas, and proyek tables have been deleted.")
+        except Exception as e:
+            print(f"Error while deleting all data: {e}")
     else:
         print("Database not initialized.")
 
+# Migration Function for Tugas Table
+
+def migrateTugasTable():
+    global conn
+    if not conn:
+        print("Database not initialized.")
+        return
+    cursor = conn.cursor()
+
+    # Check existing columns in tugas table
+    cursor.execute("PRAGMA table_info(tugas)")
+    columns = cursor.fetchall()
+    existing_columns = [col[1].lower() for col in columns]
+
+    # Add 'budget' column if it doesn't exist
+    if 'budget' not in existing_columns:
+        print("Adding 'budget' column to 'tugas' table.")
+        try:
+            cursor.execute("ALTER TABLE tugas ADD COLUMN budget INTEGER DEFAULT 0")
+        except Exception as e:
+            print(f"Error while adding 'budget' column: {e}")
+    else:
+        print("'budget' column already exists in 'tugas' table.")
+
+    # Add 'estimated' column if it doesn't exist
+    if 'estimated' not in existing_columns:
+        print("Adding 'estimated' column to 'tugas' table.")
+        try:
+            cursor.execute("ALTER TABLE tugas ADD COLUMN estimated INTEGER DEFAULT 0")
+        except Exception as e:
+            print(f"Error while adding 'estimated' column: {e}")
+    else:
+        print("'estimated' column already exists in 'tugas' table.")
+
+    conn.commit()
+    print("Migration of 'tugas' table completed successfully.")
+
 if __name__ == "__main__":
     initializeDatabase()
+    migrateProyekTable()
+    migrateTugasTable()
     migrateInspirasiTableToBlob()
     closeDatabase()

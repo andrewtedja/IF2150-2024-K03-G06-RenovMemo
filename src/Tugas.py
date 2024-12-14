@@ -24,11 +24,15 @@ class AddTugasDialog(ft.AlertDialog):
             label="Status Tugas",
             width=400
         )
+        self.estimasi_input = ft.TextField(label="Estimasi Biaya (Rupiah)", width=400)
+        self.biaya_aktual_input = ft.TextField(label="Biaya Aktual (Rupiah)", width=400)
 
         self.content = ft.Column([
             self.nama_input,
             self.deskripsi_input,
             self.status_input,
+            self.estimasi_input,
+            self.biaya_aktual_input,
         ], spacing=10)
         self.actions = [
             ft.ElevatedButton(text="Tambah", on_click=self.add_tugas),
@@ -39,12 +43,21 @@ class AddTugasDialog(ft.AlertDialog):
         nama = self.nama_input.value.strip()
         deskripsi = self.deskripsi_input.value.strip()
         status = self.status_input.value
+        estimasi = self.estimasi_input.value.strip()
+        biaya_aktual = self.biaya_aktual_input.value.strip()
 
-        if not (nama and status):
+        if not (nama and status and estimasi and biaya_aktual):
             show_snackbar(self.page, "Mohon isi semua field")
             return
 
-        self.on_add_callback(nama, status, deskripsi, self.proyek_id)
+        if not estimasi.isdigit() or not biaya_aktual.isdigit():
+            show_snackbar(self.page, "Estimasi dan Biaya Aktual harus berupa angka")
+            return
+
+        estimasi_value = int(estimasi)
+        biaya_aktual_value = int(biaya_aktual)
+
+        self.on_add_callback(nama, status, deskripsi, self.proyek_id, estimasi_value, biaya_aktual_value)
         show_snackbar(self.page, "Tugas berhasil ditambahkan.")
         self.close_dialog(e)
 
@@ -69,11 +82,15 @@ class EditTugasDialog(ft.AlertDialog):
             label="Status Tugas",
             width=400
         )
+        self.estimasi_input = ft.TextField(value=str(tugas_data["estimasi_biaya"]), label="Estimasi Biaya (Rupiah)", width=400)
+        self.biaya_aktual_input = ft.TextField(value=str(tugas_data["biaya_aktual"]), label="Biaya Aktual (Rupiah)", width=400)
 
         self.content = ft.Column([
             self.nama_input,
             self.deskripsi_input,
             self.status_input,
+            self.estimasi_input,
+            self.biaya_aktual_input,
         ], spacing=10)
         self.actions = [
             ft.ElevatedButton(text="Simpan", on_click=self.save_changes),
@@ -84,18 +101,109 @@ class EditTugasDialog(ft.AlertDialog):
         nama = self.nama_input.value.strip()
         deskripsi = self.deskripsi_input.value.strip()
         status = self.status_input.value
+        estimasi = self.estimasi_input.value.strip()
+        biaya_aktual = self.biaya_aktual_input.value.strip()
 
-        if not (nama and status):
+        if not (nama and status and estimasi and biaya_aktual):
             show_snackbar(self.page, "Mohon isi semua field")
             return
+
+        if not estimasi.isdigit() or not biaya_aktual.isdigit():
+            show_snackbar(self.page, "Estimasi dan Biaya Aktual harus berupa angka")
+            return
+
+        estimasi_value = int(estimasi)
+        biaya_aktual_value = int(biaya_aktual)
 
         database.editTugas(
             tugas_id=self.tugas_data["tugas_id"],
             tugas_nama=nama,
             tugas_status=status,
-            tugas_deskripsi=deskripsi
+            tugas_deskripsi=deskripsi,
+            estimasi_biaya=estimasi_value,
+            biaya_aktual=biaya_aktual_value
         )
         show_snackbar(self.page, "Tugas berhasil diperbarui.")
+        self.on_update_callback()
+        self.close_dialog(e)
+
+    def close_dialog(self, e):
+        self.open = False
+        if self.page:
+            self.page.dialog = None
+            self.page.update()
+
+class ViewBiayaDialog(ft.AlertDialog):
+    def __init__(self, page, tugas_data, on_edit_callback):
+        super().__init__()
+        self.page = page
+        self.tugas_data = tugas_data
+        self.on_edit_callback = on_edit_callback
+
+        self.estimasi_display = ft.Text(f"Estimasi Biaya: Rp. {tugas_data['estimasi_biaya']:,}", size=16)
+        self.biaya_aktual_display = ft.Text(f"Biaya Aktual: Rp. {tugas_data['biaya_aktual']:,}", size=16)
+
+        self.content = ft.Column([
+            self.estimasi_display,
+            self.biaya_aktual_display,
+        ], spacing=10)
+        self.actions = [
+            ft.ElevatedButton(text="Edit", on_click=self.open_edit_biaya_dialog),
+            ft.TextButton(text="Tutup", on_click=self.close_dialog),
+        ]
+
+    def open_edit_biaya_dialog(self, e):
+        edit_biaya_dialog = EditBiayaDialog(self.page, self.tugas_data, self.on_edit_callback)
+        self.page.dialog = edit_biaya_dialog
+        edit_biaya_dialog.open = True
+        self.page.update()
+
+    def close_dialog(self, e):
+        self.open = False
+        if self.page:
+            self.page.dialog = None
+            self.page.update()
+
+class EditBiayaDialog(ft.AlertDialog):
+    def __init__(self, page, tugas_data, on_update_callback):
+        super().__init__()
+        self.page = page
+        self.tugas_data = tugas_data
+        self.on_update_callback = on_update_callback
+
+        self.estimasi_input = ft.TextField(value=str(tugas_data["estimasi_biaya"]), label="Estimasi Biaya (Rupiah)", width=400)
+        self.biaya_aktual_input = ft.TextField(value=str(tugas_data["biaya_aktual"]), label="Biaya Aktual (Rupiah)", width=400)
+
+        self.content = ft.Column([
+            self.estimasi_input,
+            self.biaya_aktual_input,
+        ], spacing=10)
+        self.actions = [
+            ft.ElevatedButton(text="Simpan", on_click=self.save_biaya),
+            ft.TextButton(text="Batal", on_click=self.close_dialog),
+        ]
+
+    def save_biaya(self, e):
+        estimasi = self.estimasi_input.value.strip()
+        biaya_aktual = self.biaya_aktual_input.value.strip()
+
+        if not (estimasi and biaya_aktual):
+            show_snackbar(self.page, "Mohon isi semua field")
+            return
+
+        if not estimasi.isdigit() or not biaya_aktual.isdigit():
+            show_snackbar(self.page, "Estimasi dan Biaya Aktual harus berupa angka")
+            return
+
+        estimasi_value = int(estimasi)
+        biaya_aktual_value = int(biaya_aktual)
+
+        database.editTugas(
+            tugas_id=self.tugas_data["tugas_id"],
+            estimasi_biaya=estimasi_value,
+            biaya_aktual=biaya_aktual_value
+        )
+        show_snackbar(self.page, "Biaya berhasil diperbarui.")
         self.on_update_callback()
         self.close_dialog(e)
 
@@ -118,11 +226,11 @@ class TugasManager:
 
         proyek_data = database.getProyek(self.proyek_id)
         if proyek_data:
-            proyek_name, proyek_status, proyek_deskripsi, proyek_mulai, proyek_selesai, proyek_budget = proyek_data
+            proyek_name, proyek_status, proyek_deskripsi, proyek_mulai, proyek_selesai = proyek_data
             proyek_title = f"Proyek: {proyek_name}"
             proyek_info = f"Status: {proyek_status} | {proyek_mulai} - {proyek_selesai}"
             proyek_description = f"Deskripsi: {proyek_deskripsi}"
-            budget_text = f"Budget: Rp. {proyek_budget:,}"
+
             self.tugas_list = database.getTugasWithProyek(self.proyek_id)
 
             completed_tasks = len([t for t in self.tugas_list if t[3] == "Selesai"])
@@ -130,23 +238,19 @@ class TugasManager:
             total_tasks = len(self.tugas_list)
             progress_value = (completed_tasks * 1 + in_progress_tasks * 0.5) / total_tasks if total_tasks > 0 else 0.0
 
-            #  progress bar
             progress_percentage = int(progress_value * 100)
             self.progress_text = ft.Text(f"{progress_percentage}%", size=16, weight=ft.FontWeight.BOLD)
             self.progress_bar = ft.ProgressBar(value=progress_value, width=400)
             self.deskripsi_display = ft.Text(proyek_description, size=14)
             self.proyek_info_text = ft.Text(proyek_info, size=14)
-            self.budget_display = ft.Text(budget_text, size=16, weight=ft.FontWeight.BOLD)
         else:
             proyek_title = "Proyek Tidak Ditemukan"
             proyek_info = ""
             proyek_description = "Deskripsi: -"
-            budget_text = "Budget: -"
             self.progress_text = ft.Text("0%", size=16, weight=ft.FontWeight.BOLD)
             self.progress_bar = ft.ProgressBar(value=0.0, width=400)
             self.deskripsi_display = ft.Text(proyek_description, size=14)
             self.proyek_info_text = ft.Text("Proyek tidak ditemukan", size=16)
-            self.budget_display = ft.Text(budget_text, size=16, weight=ft.FontWeight.BOLD)
 
         self.title = ft.Container(
             content=ft.Text(proyek_title, size=28, weight=ft.FontWeight.BOLD),
@@ -156,7 +260,6 @@ class TugasManager:
 
         self.proyek_info_text = ft.Text(proyek_info, size=14)
         self.deskripsi_display = ft.Text(proyek_description, size=14)
-        self.budget_display = ft.Text(budget_text, size=16, weight=ft.FontWeight.BOLD)
 
         self.add_tugas_button = ft.ElevatedButton(
             text="Tambah Tugas",
@@ -224,8 +327,6 @@ class TugasManager:
                 self.proyek_info_text,
                 ft.Divider(),
                 self.deskripsi_display,
-                ft.Divider(),
-                self.budget_display,
                 self.progress_display, 
                 ft.Divider(),
                 ft.Text("Daftar Tugas", size=20, weight=ft.FontWeight.BOLD),
@@ -283,6 +384,7 @@ class TugasManager:
         for tugas in paginated_tugas:
             delete_handler = lambda e, tid=tugas[0]: self.delete_tugas(e, tid)
             edit_handler = lambda e, tdata=tugas: self.open_edit_tugas_dialog(e, tdata)
+            view_biaya_handler = lambda e, tdata=tugas: self.view_biaya(e, tdata)
             toggle_status_handler = lambda e, tid=tugas[0], status=tugas[3]: self.toggle_tugas_status(tid, status)
 
             text_color = (
@@ -318,6 +420,15 @@ class TugasManager:
                                         ),
                                         on_click=delete_handler,
                                     ),
+                                    ft.ElevatedButton(
+                                        text="Lihat Biaya",
+                                        style=ft.ButtonStyle(
+                                            color="white",
+                                            bgcolor="purple",
+                                            padding=ft.padding.symmetric(horizontal=10, vertical=5),
+                                        ),
+                                        on_click=view_biaya_handler,
+                                    ),
                                     ft.IconButton(
                                         icon=ft.icons.DONE if tugas[3] != "Selesai" else ft.icons.CANCEL,
                                         tooltip="Tandai Selesai" if tugas[3] != "Selesai" else "Tandai Belum Selesai",
@@ -336,6 +447,16 @@ class TugasManager:
         self.next_button.disabled = self.current_page >= self.total_pages
         self.page.update()
 
+    def view_biaya(self, e, tugas_data):
+        biaya_dialog = ViewBiayaDialog(self.page, {
+            "estimasi_biaya": tugas_data[4],
+            "biaya_aktual": tugas_data[5],
+            "tugas_id": tugas_data[0]
+        }, self.refresh_data)
+        self.page.dialog = biaya_dialog
+        biaya_dialog.open = True
+        self.page.update()
+
     def open_add_tugas_dialog(self, e):
         add_dialog = AddTugasDialog(self.page, self.proyek_id, self.add_tugas_to_database)
         self.page.dialog = add_dialog
@@ -348,14 +469,16 @@ class TugasManager:
             "tugas_nama": tugas_data[1],
             "tugas_deskripsi": tugas_data[2],
             "tugas_status": tugas_data[3],
+            "estimasi_biaya": tugas_data[4],
+            "biaya_aktual": tugas_data[5],
         }
         edit_dialog = EditTugasDialog(self.page, tugas_data_dict, self.refresh_data)
         self.page.dialog = edit_dialog
         edit_dialog.open = True
         self.page.update()
 
-    def add_tugas_to_database(self, nama, status, deskripsi, proyek_id):
-        database.addTugas(nama, status, proyek_id, deskripsi)
+    def add_tugas_to_database(self, nama, status, deskripsi, proyek_id, estimasi, biaya_aktual):
+        database.addTugas(nama, status, proyek_id, deskripsi, estimasi, biaya_aktual)
         show_snackbar(self.page, "Tugas berhasil ditambahkan")
         self.refresh_data()
 
@@ -404,10 +527,89 @@ class TugasManager:
     def build(self):
         return self.main_column
 
+class ViewBiayaDialog(ft.AlertDialog):
+    def __init__(self, page, tugas_data, on_edit_callback):
+        super().__init__()
+        self.page = page
+        self.tugas_data = tugas_data
+        self.on_edit_callback = on_edit_callback
+
+        self.estimasi_display = ft.Text(f"Estimasi Biaya: Rp. {tugas_data['estimasi_biaya']:,}", size=16)
+        self.biaya_aktual_display = ft.Text(f"Biaya Aktual: Rp. {tugas_data['biaya_aktual']:,}", size=16)
+
+        self.content = ft.Column([
+            self.estimasi_display,
+            self.biaya_aktual_display,
+        ], spacing=10)
+        self.actions = [
+            ft.ElevatedButton(text="Edit", on_click=self.open_edit_biaya_dialog),
+            ft.TextButton(text="Tutup", on_click=self.close_dialog),
+        ]
+
+    def open_edit_biaya_dialog(self, e):
+        edit_biaya_dialog = EditBiayaDialog(self.page, self.tugas_data, self.on_edit_callback)
+        self.page.dialog = edit_biaya_dialog
+        edit_biaya_dialog.open = True
+        self.page.update()
+
+    def close_dialog(self, e):
+        self.open = False
+        if self.page:
+            self.page.dialog = None
+            self.page.update()
+
+class EditBiayaDialog(ft.AlertDialog):
+    def __init__(self, page, tugas_data, on_update_callback):
+        super().__init__()
+        self.page = page
+        self.tugas_data = tugas_data
+        self.on_update_callback = on_update_callback
+
+        self.estimasi_input = ft.TextField(value=str(tugas_data["estimasi_biaya"]), label="Estimasi Biaya (Rupiah)", width=400)
+        self.biaya_aktual_input = ft.TextField(value=str(tugas_data["biaya_aktual"]), label="Biaya Aktual (Rupiah)", width=400)
+
+        self.content = ft.Column([
+            self.estimasi_input,
+            self.biaya_aktual_input,
+        ], spacing=10)
+        self.actions = [
+            ft.ElevatedButton(text="Simpan", on_click=self.save_biaya),
+            ft.TextButton(text="Batal", on_click=self.close_dialog),
+        ]
+
+    def save_biaya(self, e):
+        estimasi = self.estimasi_input.value.strip()
+        biaya_aktual = self.biaya_aktual_input.value.strip()
+
+        if not (estimasi and biaya_aktual):
+            show_snackbar(self.page, "Mohon isi semua field")
+            return
+
+        if not estimasi.isdigit() or not biaya_aktual.isdigit():
+            show_snackbar(self.page, "Estimasi dan Biaya Aktual harus berupa angka")
+            return
+
+        estimasi_value = int(estimasi)
+        biaya_aktual_value = int(biaya_aktual)
+
+        database.editTugas(
+            tugas_id=self.tugas_data["tugas_id"],
+            estimasi_biaya=estimasi_value,
+            biaya_aktual=biaya_aktual_value
+        )
+        show_snackbar(self.page, "Biaya berhasil diperbarui.")
+        self.on_update_callback()
+        self.close_dialog(e)
+
+    def close_dialog(self, e):
+        self.open = False
+        if self.page:
+            self.page.dialog = None
+            self.page.update()
+
 def main(page: ft.Page):
     page.title = "Tugas Manager"
-    proyek_id = 1  # 
+    proyek_id = 1  
     manager = TugasManager(page, proyek_id)
     page.add(manager.build())
     page.update()
-

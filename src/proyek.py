@@ -35,9 +35,6 @@ class AddProyekDialog(ft.AlertDialog):
         self.tanggal_selesai_label = ft.Text("Tanggal Selesai (YYYY-MM-DD)", size=14)
         self.tanggal_selesai_input = ft.TextField(label="Contoh: 2024-12-31", width=600)
 
-        self.budget_label = ft.Text("Budget (Rupiah)", size=14)
-        self.budget_input = ft.TextField(label="Contoh: 100000", width=600)
-
         self.content = ft.Column(
             [
                 self.nama_label,
@@ -50,8 +47,6 @@ class AddProyekDialog(ft.AlertDialog):
                 self.tanggal_mulai_input,
                 self.tanggal_selesai_label,
                 self.tanggal_selesai_input,
-                self.budget_label,
-                self.budget_input,
             ],
             spacing=10
         )
@@ -66,9 +61,8 @@ class AddProyekDialog(ft.AlertDialog):
         status = self.status_input.value
         tanggal_mulai = self.tanggal_mulai_input.value.strip()
         tanggal_selesai = self.tanggal_selesai_input.value.strip()
-        budget = self.budget_input.value.strip()
 
-        if not (nama and deskripsi and status and tanggal_mulai and tanggal_selesai and budget):
+        if not (nama and deskripsi and status and tanggal_mulai and tanggal_selesai):
             show_snackbar(self.page, "Mohon isi semua field.")
             return
 
@@ -76,17 +70,9 @@ class AddProyekDialog(ft.AlertDialog):
             show_snackbar(self.page, "Format tanggal tidak valid. Gunakan YYYY-MM-DD.")
             return
 
-        if not budget.isdigit():
-            show_snackbar(self.page, "Budget harus berupa angka.")
-            return
-        budget_value = int(budget)
-        if budget_value <= 0:
-            show_snackbar(self.page, "Budget harus lebih dari 0.")
-            return
-        self.on_add_callback(nama, status, deskripsi, tanggal_mulai, tanggal_selesai, budget_value)
+        self.on_add_callback(nama, status, deskripsi, tanggal_mulai, tanggal_selesai)
         self.close_dialog(e)
 
-        
     def validate_date(self, date_str):
         try:
             datetime.strptime(date_str, "%Y-%m-%d")
@@ -116,7 +102,6 @@ class EditProyekDialog(ft.AlertDialog):
         )
         self.tanggal_mulai_input = ft.TextField(value=proyek_data["tanggal_mulai"], label="Tanggal Mulai (YYYY-MM-DD)", width=600)
         self.tanggal_selesai_input = ft.TextField(value=proyek_data["tanggal_selesai"], label="Tanggal Selesai (YYYY-MM-DD)", width=600)
-        self.budget_input = ft.TextField(value=str(proyek_data["budget"]), label="Budget (Rupiah)", width=600)
 
         self.content = ft.Column(
             [
@@ -125,7 +110,6 @@ class EditProyekDialog(ft.AlertDialog):
                 self.status_input,
                 self.tanggal_mulai_input,
                 self.tanggal_selesai_input,
-                self.budget_input,
             ],
             spacing=10
         )
@@ -140,23 +124,13 @@ class EditProyekDialog(ft.AlertDialog):
         status = self.status_input.value
         tanggal_mulai = self.tanggal_mulai_input.value.strip()
         tanggal_selesai = self.tanggal_selesai_input.value.strip()
-        budget = self.budget_input.value.strip()
 
-        if not (nama and deskripsi and status and tanggal_mulai and tanggal_selesai and budget):
+        if not (nama and deskripsi and status and tanggal_mulai and tanggal_selesai):
             show_snackbar(self.page, "Mohon isi semua field")
             return
 
         if not self.validate_date(tanggal_mulai) or not self.validate_date(tanggal_selesai):
             show_snackbar(self.page, "Format tanggal tidak valid. Gunakan YYYY-MM-DD.")
-            return
-
-        try:
-            budget_value = int(budget)
-            if len(budget) > 15:
-                show_snackbar(self.page, "Budget terlalu mahal!")
-                return
-        except ValueError:
-            show_snackbar(self.page, "Budget harus berupa angka")
             return
 
         database.editProyek(
@@ -165,8 +139,7 @@ class EditProyekDialog(ft.AlertDialog):
             proyek_status=status,
             proyek_deskripsi=deskripsi,
             proyek_mulai=tanggal_mulai,
-            proyek_selesai=tanggal_selesai,
-            proyek_budget=budget_value
+            proyek_selesai=tanggal_selesai
         )
         show_snackbar(self.page, "Proyek berhasil diperbarui.")
         self.on_update_callback()
@@ -194,7 +167,7 @@ class DetailProyekDialog(ft.AlertDialog):
 
         self.content = ft.Container(
             width=600,
-            height=1000,
+            height=800,
             content=ft.Column(
                 [
                     ft.Text(f"Proyek: {self.proyek_data['nama']}", size=20, weight=ft.FontWeight.BOLD),
@@ -203,7 +176,6 @@ class DetailProyekDialog(ft.AlertDialog):
                     ft.Text(f"Status: {self.proyek_data['status']}", size=16),
                     ft.Text(f"Tanggal Mulai: {self.proyek_data['tanggal_mulai']}", size=16),
                     ft.Text(f"Tanggal Selesai: {self.proyek_data['tanggal_selesai']}", size=16),
-                    ft.Text(f"Budget: Rp. {self.proyek_data['budget']}", size=16),
                 ],
                 spacing=10,
                 alignment=ft.MainAxisAlignment.START,
@@ -228,8 +200,8 @@ class DetailProyekDialog(ft.AlertDialog):
             title=ft.Text("Konfirmasi Hapus"),
             content=ft.Text("Apakah Anda yakin ingin menghapus proyek ini?"),
             actions=[
-            ft.TextButton("Ya", on_click=lambda e: [self.confirm_delete(), self.close_dialog(e)]),
-            ft.TextButton("Tidak", on_click=lambda e: self.close_dialog(e)),
+                ft.TextButton("Ya", on_click=lambda e: [self.confirm_delete(), self.close_dialog(e)]),
+                ft.TextButton("Tidak", on_click=lambda e: self.close_dialog(e)),
             ],
         )
         self.page.dialog = confirm
@@ -286,7 +258,6 @@ class ProyekManager:
             columns=[
                 ft.DataColumn(ft.Text("Nama", weight=ft.FontWeight.BOLD)),
                 ft.DataColumn(ft.Text("Status", weight=ft.FontWeight.BOLD)),
-                ft.DataColumn(ft.Text("Budget", weight=ft.FontWeight.BOLD)),
                 ft.DataColumn(ft.Text("Mulai", weight=ft.FontWeight.BOLD)),
                 ft.DataColumn(ft.Text("Selesai", weight=ft.FontWeight.BOLD)),
                 ft.DataColumn(ft.Text("Aksi", weight=ft.FontWeight.BOLD)),
@@ -296,7 +267,7 @@ class ProyekManager:
             border_radius=10,
             horizontal_margin=20,
             column_spacing=100,
-            width=2000
+            width=1800
         )
 
         self.prev_button = ft.ElevatedButton(
@@ -373,7 +344,6 @@ class ProyekManager:
             return
 
         for proyek in paginated_proyek:
-            # action handlers
             view_handler = lambda e, pid=proyek[0]: self.view_rincian(pid)
             edit_handler = lambda e, pdata=proyek: self.open_edit_proyek_dialog(e, pdata)
             delete_handler = lambda e, pid=proyek[0]: self.open_delete_proyek_dialog(e, pid)
@@ -384,13 +354,11 @@ class ProyekManager:
                 "orange" if proyek[2] == "Sedang Berjalan" else
                 "green"
             )
-            # actions
             self.proyek_table.rows.append(
                 ft.DataRow(
                     cells=[
                         ft.DataCell(ft.Text(proyek[1], size=16)),
                         ft.DataCell(ft.Text(proyek[2], size=16, color=text_color)),
-                        ft.DataCell(ft.Text(f"Rp. {proyek[6]:,}", size=16)),
                         ft.DataCell(ft.Text(proyek[4], size=16)),
                         ft.DataCell(ft.Text(proyek[5], size=16)),
                         ft.DataCell(
@@ -420,7 +388,7 @@ class ProyekManager:
                                         on_click=delete_handler,
                                     ),
                                     ft.IconButton(
-                                        icon=ft.icons.DONE if proyek[2] != "Selesai" else ft.icons.CANCEL,  # Status toggle
+                                        icon=ft.icons.DONE if proyek[2] != "Selesai" else ft.icons.CANCEL,
                                         tooltip="Tandai Selesai" if proyek[2] != "Selesai" else "Tandai Belum Selesai",
                                         on_click=toggle_status_handler,
                                     ),
@@ -431,7 +399,6 @@ class ProyekManager:
                     ]
                 )
             )
-
 
         self.page_label.value = f"Page {self.current_page} of {self.total_pages}"
         self.prev_button.disabled = self.current_page <= 1
@@ -468,7 +435,6 @@ class ProyekManager:
             "deskripsi": proyek_data[3],
             "tanggal_mulai": proyek_data[4],
             "tanggal_selesai": proyek_data[5],
-            "budget": proyek_data[6],
         }
         edit_dialog = EditProyekDialog(self.page, proyek_data_dict, self.refresh_data)
         self.page.dialog = edit_dialog
@@ -499,8 +465,8 @@ class ProyekManager:
             self.page.dialog = None
         self.page.update()
         
-    def add_proyek_to_database(self, nama, status, deskripsi, tanggal_mulai, tanggal_selesai, budget):
-        self.database.addProyek(nama, status, deskripsi, tanggal_mulai, tanggal_selesai, budget)
+    def add_proyek_to_database(self, nama, status, deskripsi, tanggal_mulai, tanggal_selesai):
+        self.database.addProyek(nama, status, deskripsi, tanggal_mulai, tanggal_selesai)
         show_snackbar(self.page, "Proyek berhasil ditambahkan.")
         self.refresh_data()
         self.close_dialog(None)
