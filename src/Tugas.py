@@ -1,4 +1,3 @@
-# Tugas.py
 import flet as ft
 import database
 from datetime import datetime
@@ -31,7 +30,6 @@ class AddTugasDialog(ft.AlertDialog):
             self.deskripsi_input,
             self.status_input,
         ], spacing=10)
-
         self.actions = [
             ft.ElevatedButton(text="Tambah", on_click=self.add_tugas),
             ft.TextButton(text="Batal", on_click=self.close_dialog),
@@ -77,7 +75,6 @@ class EditTugasDialog(ft.AlertDialog):
             self.deskripsi_input,
             self.status_input,
         ], spacing=10)
-
         self.actions = [
             ft.ElevatedButton(text="Simpan", on_click=self.save_changes),
             ft.TextButton(text="Batal", on_click=self.close_dialog),
@@ -102,9 +99,6 @@ class EditTugasDialog(ft.AlertDialog):
         self.on_update_callback()
         self.close_dialog(e)
 
-    def refresh_data(self):
-        self.on_update_callback()
-
     def close_dialog(self, e):
         self.open = False
         if self.page:
@@ -115,7 +109,7 @@ class TugasManager:
     def __init__(self, page: ft.Page, proyek_id: int):
         self.page = page
         self.proyek_id = proyek_id
-        database.initializeDatabase()  
+        database.initializeDatabase()
 
         self.current_page = 1
         self.items_per_page = 5
@@ -123,24 +117,27 @@ class TugasManager:
         self.tugas_list = []
 
         proyek_data = database.getProyek(self.proyek_id)
-        # proyek_data = (proyek_nama, proyek_status, proyek_deskripsi, proyek_mulai, proyek_selesai, proyek_budget)
         if proyek_data:
             proyek_name, proyek_status, proyek_deskripsi, proyek_mulai, proyek_selesai, proyek_budget = proyek_data
             proyek_title = f"Proyek: {proyek_name}"
             proyek_info = f"Status: {proyek_status} | {proyek_mulai} - {proyek_selesai}"
             proyek_description = f"Deskripsi: {proyek_deskripsi}"
-            budget_text = f"Budget: Rp. {proyek_budget}"
+            budget_text = f"Budget: Rp. {proyek_budget:,}"
             self.tugas_list = database.getTugasWithProyek(self.proyek_id)
-            
 
-            # PROGRESS BAR (MASI PLACEHOLDER)
-            self.progress_bar = ft.ProgressBar(value=0.5, width=400)
+            completed_tasks = len([t for t in self.tugas_list if t[3] == "Selesai"])
+            in_progress_tasks = len([t for t in self.tugas_list if t[3] == "Sedang Berjalan"])
+            total_tasks = len(self.tugas_list)
+            progress_value = (completed_tasks * 1 + in_progress_tasks * 0.5) / total_tasks if total_tasks > 0 else 0.0
+
+            self.progress_bar = ft.ProgressBar(value=progress_value, width=400)
             self.deskripsi_display = ft.Text(proyek_description, size=14)
             self.proyek_info_text = ft.Text(proyek_info, size=14)
             self.budget_display = ft.Text(budget_text, size=16, weight=ft.FontWeight.BOLD)
         else:
             proyek_title = "Proyek Tidak Ditemukan"
             proyek_info = ""
+            proyek_description = "Deskripsi: -"
             budget_text = "Budget: -"
             self.progress_bar = ft.ProgressBar(value=0.0, width=400)
             self.deskripsi_display = ft.Text(proyek_description, size=14)
@@ -154,7 +151,7 @@ class TugasManager:
         )
 
         self.proyek_info_text = ft.Text(proyek_info, size=14)
-        self.deskripsi_display = ft.Text(proyek_deskripsi, size=14)
+        self.deskripsi_display = ft.Text(proyek_description, size=14)
         self.budget_display = ft.Text(budget_text, size=16, weight=ft.FontWeight.BOLD)
 
         self.add_tugas_button = ft.ElevatedButton(
@@ -186,17 +183,26 @@ class TugasManager:
             text="Sebelum",
             on_click=self.prev_page,
             disabled=True,
+            style=ft.ButtonStyle(
+                padding=ft.padding.symmetric(horizontal=10, vertical=5),
+                text_style=ft.TextStyle(size=14),
+            )
         )
         self.next_button = ft.ElevatedButton(
             text="Lanjut",
             on_click=self.next_page,
             disabled=True,
+            style=ft.ButtonStyle(
+                padding=ft.padding.symmetric(horizontal=10, vertical=5),
+                text_style=ft.TextStyle(size=14),
+            )
         )
-        self.page_label = ft.Text("Page 1 of 1")
+        self.page_label = ft.Text("Page 1 of 1", size=16, weight=ft.FontWeight.NORMAL)
 
         self.pagination = ft.Row(
             controls=[self.prev_button, self.page_label, self.next_button],
             alignment=ft.MainAxisAlignment.CENTER,
+            spacing=20,
         )
 
         self.main_column = ft.Column(
@@ -221,7 +227,8 @@ class TugasManager:
                 ),
                 self.tugas_table,
                 self.pagination,
-            ]
+            ],
+            spacing=20,
         )
 
         self.load_tugas()
@@ -234,9 +241,13 @@ class TugasManager:
 
     def load_tugas(self):
         self.tugas_list = database.getTugasWithProyek(self.proyek_id)
-        # tugas_list: (tugas_id, tugas_nama, tugas_deskripsi, tugas_status, proyek_id)
-        total_items = len(self.tugas_list)
-        self.total_pages = max(1, (total_items + self.items_per_page - 1) // self.items_per_page)
+        completed_tasks = len([t for t in self.tugas_list if t[3] == "Selesai"])
+        in_progress_tasks = len([t for t in self.tugas_list if t[3] == "Sedang Berjalan"])
+        total_tasks = len(self.tugas_list)
+        progress_value = (completed_tasks * 1 + in_progress_tasks * 0.5) / total_tasks if total_tasks > 0 else 0.0
+        self.progress_bar.value = progress_value
+
+        self.total_pages = max(1, (total_tasks + self.items_per_page - 1) // self.items_per_page)
 
         if self.current_page > self.total_pages:
             self.current_page = self.total_pages
@@ -256,7 +267,6 @@ class TugasManager:
             return
 
         for tugas in paginated_tugas:
-            # tugas: (tugas_id, tugas_nama, tugas_deskripsi, tugas_status, proyek_id)
             delete_handler = lambda e, tid=tugas[0]: self.delete_tugas(e, tid)
             edit_handler = lambda e, tdata=tugas: self.open_edit_tugas_dialog(e, tdata)
             toggle_status_handler = lambda e, tid=tugas[0], status=tugas[3]: self.toggle_tugas_status(tid, status)
@@ -272,7 +282,7 @@ class TugasManager:
                     cells=[
                         ft.DataCell(ft.Text(tugas[1], size=16)),
                         ft.DataCell(ft.Text(tugas[3], size=16, color=text_color)),
-                        ft.DataCell(ft.Text(tugas[2], size=16)),
+                        ft.DataCell(ft.Text(tugas[2], size=16, max_lines=2, overflow=ft.TextOverflow.ELLIPSIS)),
                         ft.DataCell(
                             ft.Row(
                                 [
@@ -361,7 +371,7 @@ class TugasManager:
         if self.page.dialog:
             self.page.dialog.open = False
             self.page.dialog = None
-        self.page.update()
+            self.page.update()
 
     def refresh_data(self):
         self.load_tugas()
@@ -379,3 +389,10 @@ class TugasManager:
 
     def build(self):
         return self.main_column
+
+def main(page: ft.Page):
+    page.title = "Tugas Manager"
+    proyek_id = 1
+    manager = TugasManager(page, proyek_id)
+    page.add(manager.build())
+    page.update()
