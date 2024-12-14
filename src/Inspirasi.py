@@ -265,7 +265,6 @@ class DetailInspirasiDialog(ft.AlertDialog):
             ft.ElevatedButton(text="Hapus", on_click=self.delete_inspirasi),
             ft.TextButton(text="Tutup", on_click=self.close_dialog),
         ]
-
     def open_edit_dialog(self, e):
         edit_dialog = EditInspirasiDialog(self.page, self.inspirasi_data, self.on_update_callback, self.file_picker)
         self.file_picker.on_result = edit_dialog.on_file_picker_result
@@ -273,38 +272,38 @@ class DetailInspirasiDialog(ft.AlertDialog):
         edit_dialog.open = True
         self.page.update()
 
-    def delete_inspirasi(self, _):  # Using _ for unused parameter
-        # Membuat dialog konfirmasi hapus
+    def delete_inspirasi(self, _):
         self.confirm_dialog = ft.AlertDialog(
             title=ft.Text("Konfirmasi Hapus"),
             content=ft.Text("Apakah Anda yakin ingin menghapus inspirasi ini?"),
             actions=[
-                # Tombol "Ya" memanggil confirm_delete dengan argumen event
-                ft.TextButton("Ya", on_click=lambda e: [self.confirm_delete(e), self.close_confirm_dialog(e)]),
-                # Tombol "Tidak" memanggil close_confirm_dialog dengan argumen event
+                ft.TextButton("Ya", on_click=self.confirm_delete),
                 ft.TextButton("Tidak", on_click=self.close_confirm_dialog),
             ],
         )
-        # Menambahkan dialog konfirmasi ke overlay dan membukanya
         self.page.overlay.append(self.confirm_dialog)
         self.confirm_dialog.open = True
         self.page.update()
 
     def confirm_delete(self, e):
-        # Menghapus inspirasi dari database
-        database.deleteInspirasi(self.inspirasi_data["inspirasi_id"])
-        show_snackbar(self.page, "Inspirasi berhasil dihapus.")
-        self.on_update_callback()
+        if self.confirm_dialog and self.confirm_dialog in self.page.overlay:
+            database.deleteInspirasi(self.inspirasi_data["inspirasi_id"])
+            show_snackbar(self.page, "Inspirasi berhasil dihapus.")
+            if self.on_update_callback:
+                self.on_update_callback()
+            self.close_confirm_dialog(e)
 
-    def close_confirm_dialog(self, e):
-        if self.confirm_dialog in self.page.overlay:
-            self.page.overlay.remove(self.confirm_dialog)
-        self.confirm_dialog.open = False
+    def close_confirm_dialog(self, e=None):
+        if self.confirm_dialog:
+            if self.confirm_dialog in self.page.overlay:
+                self.page.overlay.remove(self.confirm_dialog)
+            self.confirm_dialog = None
         self.page.update()
 
     def close_dialog(self, e):
-        self.open = False
-        self.page.dialog = None
+        if self.page.dialog:
+            self.page.dialog.open = False
+            self.page.dialog = None
         self.page.update()
 
 class InspirasiProyekManager:
@@ -471,7 +470,12 @@ class InspirasiProyekManager:
                 "inspirasi_referensi": inspirasi[4],
             }
 
-            detail_dialog = DetailInspirasiDialog(self.page, inspirasi_data, self.refresh_data, self.file_picker)
+            detail_dialog = DetailInspirasiDialog(
+                self.page,
+                inspirasi_data,
+                self.refresh_data,  
+                self.file_picker,
+            )
             self.page.dialog = detail_dialog
             detail_dialog.open = True
             self.page.update()
