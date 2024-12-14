@@ -67,28 +67,25 @@ class AddProyekDialog(ft.AlertDialog):
         tanggal_mulai = self.tanggal_mulai_input.value.strip()
         tanggal_selesai = self.tanggal_selesai_input.value.strip()
         budget = self.budget_input.value.strip()
-        # VALIDASI
 
         if not (nama and deskripsi and status and tanggal_mulai and tanggal_selesai and budget):
-            show_snackbar(self.page, "Mohon isi semua field")
+            show_snackbar(self.page, "Mohon isi semua field.")
             return
 
         if not self.validate_date(tanggal_mulai) or not self.validate_date(tanggal_selesai):
             show_snackbar(self.page, "Format tanggal tidak valid. Gunakan YYYY-MM-DD.")
             return
 
-        try:
-            budget_value = int(budget)
-            if len(budget) > 15:
-                show_snackbar(self.page, "Budget terlalu mahal!")
-                return
-        except ValueError:
-            show_snackbar(self.page, "Budget harus berupa angka")
+        if not budget.isdigit():
+            show_snackbar(self.page, "Budget harus berupa angka.")
             return
-
+        budget_value = int(budget)
+        if budget_value <= 0:
+            show_snackbar(self.page, "Budget harus lebih dari 0.")
+            return
         self.on_add_callback(nama, status, deskripsi, tanggal_mulai, tanggal_selesai, budget_value)
-        show_snackbar(self.page, "Proyek berhasil ditambahkan.")
         self.close_dialog(e)
+
         
     def validate_date(self, date_str):
         try:
@@ -504,10 +501,11 @@ class ProyekManager:
         
     def add_proyek_to_database(self, nama, status, deskripsi, tanggal_mulai, tanggal_selesai, budget):
         self.database.addProyek(nama, status, deskripsi, tanggal_mulai, tanggal_selesai, budget)
-        show_snackbar(self.page, "Proyek berhasil ditambahkan")
-        self.page.overlay.clear()
-        self.page.update()
+        show_snackbar(self.page, "Proyek berhasil ditambahkan.")
         self.refresh_data()
+        self.close_dialog(None)
+        self.page.update()
+
 
     def refresh_data(self):
         self.load_proyek(None)

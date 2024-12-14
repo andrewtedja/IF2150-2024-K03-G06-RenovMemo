@@ -59,18 +59,23 @@ def closeDatabase():
 
 # Proyek Functions
 
-def addProyek(proyek_nama: str, proyek_status: str, proyek_deskripsi:str=None, proyek_mulai:str=None, proyek_selesai:str=None, proyek_budget:int=None):
+def addProyek(proyek_nama: str, proyek_status: str, proyek_deskripsi: str = None, proyek_mulai: str = None, proyek_selesai: str = None, proyek_budget: int = None):
     global conn
     if conn:
-        cursor = conn.cursor()
-        cursor.execute('''
-    INSERT INTO proyek (proyek_nama, proyek_status, proyek_deskripsi, proyek_mulai, proyek_selesai, proyek_budget)
-    VALUES (?, ?, ?, ?, ?, ?)
-    ''', (proyek_nama, proyek_status, proyek_deskripsi, proyek_mulai, proyek_selesai, proyek_budget))
-        conn.commit()
-        print(f"Proyek '{proyek_nama}' added successfully.")
+        try:
+            cursor = conn.cursor()
+            print(f"Starting INSERT for proyek: {proyek_nama}")
+            cursor.execute('''
+            INSERT INTO proyek (proyek_nama, proyek_status, proyek_deskripsi, proyek_mulai, proyek_selesai, proyek_budget)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ''', (proyek_nama, proyek_status, proyek_deskripsi, proyek_mulai, proyek_selesai, proyek_budget))
+            conn.commit()
+            print(f"Proyek '{proyek_nama}' added successfully.")
+        except Exception as e:
+            print(f"Error while adding proyek: {e}")
     else:
         print("Database not initialized.")
+
 
 def editProyek(proyek_id:int, proyek_nama:str=None, proyek_status:str=None, proyek_deskripsi:str=None, proyek_mulai:str=None, proyek_selesai:str=None, proyek_budget:int=None):
     global conn
