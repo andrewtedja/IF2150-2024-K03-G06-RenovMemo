@@ -50,9 +50,10 @@ class AddTugasDialog(ft.AlertDialog):
         self.close_dialog(e)
 
     def close_dialog(self, e):
-        if self.page.overlay:
-            self.page.overlay.remove(self)
-        self.page.update()
+        self.open = False
+        if self.page:
+            self.page.dialog = None
+            self.page.update()
 
 class EditTugasDialog(ft.AlertDialog):
     def __init__(self, page, tugas_data, on_update_callback):
@@ -104,9 +105,10 @@ class EditTugasDialog(ft.AlertDialog):
         self.on_update_callback()
 
     def close_dialog(self, e):
-        if self.page.overlay:
-            self.page.overlay.remove(self)
-        self.page.update()
+        self.open = False
+        if self.page:
+            self.page.dialog = None
+            self.page.update()
 
 class TugasManager:
     def __init__(self, page: ft.Page, proyek_id: int):
@@ -284,7 +286,7 @@ class TugasManager:
 
     def open_add_tugas_dialog(self, e):
         add_dialog = AddTugasDialog(self.page, self.proyek_id, self.add_tugas_to_database)
-        self.page.overlay.append(add_dialog)
+        self.page.dialog = add_dialog
         add_dialog.open = True
         self.page.update()
 
@@ -296,7 +298,7 @@ class TugasManager:
             "tugas_status": tugas_data[3],
         }
         edit_dialog = EditTugasDialog(self.page, tugas_data_dict, self.refresh_data)
-        self.page.overlay.append(edit_dialog)
+        self.page.dialog = edit_dialog
         edit_dialog.open = True
         self.page.update()
 
@@ -312,6 +314,7 @@ class TugasManager:
 
     def refresh_data(self):
         self.load_tugas()
+        self.page.update()
 
     def prev_page(self, e):
         if self.current_page > 1:

@@ -273,7 +273,7 @@ class DetailInspirasiDialog(ft.AlertDialog):
         edit_dialog.open = True
         self.page.update()
 
-    def delete_inspirasi(self, e):
+    def delete_inspirasi(self, _):  # Using _ for unused parameter
         # Membuat dialog konfirmasi hapus
         self.confirm_dialog = ft.AlertDialog(
             title=ft.Text("Konfirmasi Hapus"),
@@ -293,24 +293,14 @@ class DetailInspirasiDialog(ft.AlertDialog):
     def confirm_delete(self, e):
         # Menghapus inspirasi dari database
         database.deleteInspirasi(self.inspirasi_data["inspirasi_id"])
-        # Menampilkan snackbar
         show_snackbar(self.page, "Inspirasi berhasil dihapus.")
-        # Memanggil callback untuk memperbarui data di manager
         self.on_update_callback()
-        # Menutup dialog konfirmasi
-        self.page.overlay.clear()
-        self.close_confirm_dialog(e)
-        # Menutup dialog detail
-        self.close_dialog(e)
-        self.page.update()
-        self.refresh_data()
 
     def close_confirm_dialog(self, e):
-        if self.confirm_dialog:
-            self.confirm_dialog.open = False
+        if self.confirm_dialog in self.page.overlay:
             self.page.overlay.remove(self.confirm_dialog)
-            self.confirm_dialog = None
-            self.page.update()
+        self.confirm_dialog.open = False
+        self.page.update()
 
     def close_dialog(self, e):
         self.open = False
@@ -466,6 +456,7 @@ class InspirasiProyekManager:
     def refresh_data(self):
         self.current_page = 1
         self.load_inspirasi()
+        self.page.update()
 
     def view_rincian(self, e, insp_id):
         inspirasi = self.database.getInspirasiById(insp_id)

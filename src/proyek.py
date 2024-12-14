@@ -86,6 +86,7 @@ class AddProyekDialog(ft.AlertDialog):
             return
 
         self.on_add_callback(nama, status, deskripsi, tanggal_mulai, tanggal_selesai, budget_value)
+        show_snackbar(self.page, "Proyek berhasil ditambahkan.")
         self.close_dialog(e)
 
     def validate_date(self, date_str):
@@ -96,9 +97,11 @@ class AddProyekDialog(ft.AlertDialog):
             return False
 
     def close_dialog(self, e):
-        if self.page.overlay:
+        self.open = False
+        if self.page:
+            self.page.dialog = None
             self.page.overlay.remove(self)
-        self.page.update()
+            self.page.update()
 
 class EditProyekDialog(ft.AlertDialog):
     def __init__(self, page, proyek_data, on_update_callback):
@@ -180,9 +183,10 @@ class EditProyekDialog(ft.AlertDialog):
             return False
 
     def close_dialog(self, e):
-        if self.page.overlay:
-            self.page.overlay.remove(self)
-        self.page.update()
+        self.open = False
+        if self.page:
+            self.page.dialog = None
+            self.page.update()
 
 class DetailProyekDialog(ft.AlertDialog):
     def __init__(self, page, proyek_data, on_update_callback):
@@ -231,7 +235,7 @@ class DetailProyekDialog(ft.AlertDialog):
             ft.TextButton("Tidak", on_click=lambda e: self.close_dialog(e)),
             ],
         )
-        self.page.overlay.append(confirm)
+        self.page.dialog = confirm
         confirm.open = True
         self.page.update()
 
@@ -242,9 +246,10 @@ class DetailProyekDialog(ft.AlertDialog):
         self.close_dialog(None)
 
     def close_dialog(self, e):
-        if self.page.overlay:
-            self.page.overlay.remove(self)
-        self.page.update()
+        self.open = False
+        if self.page:
+            self.page.dialog = None
+            self.page.update()
 
 class ProyekManager:
     def __init__(self, page: ft.Page):
@@ -343,7 +348,7 @@ class ProyekManager:
 
     def load_proyek(self, e):
         filter_status = self.filter_dropdown.value
-        if filter_status == "All":
+        if (filter_status == "All"):
             proyek_list = self.database.getAllProyek()
         else:
             proyek_list = self.database.getProyekWithStatus(filter_status)
@@ -430,9 +435,16 @@ class ProyekManager:
 
     def open_add_proyek_dialog(self, e):
         add_dialog = AddProyekDialog(self.page, self.add_proyek_to_database)
-        self.page.overlay.append(add_dialog)
+        self.page.dialog = add_dialog
         add_dialog.open = True
         self.page.update()
+
+        def close_dialog(e):
+            add_dialog.open = False
+            self.page.dialog = None
+            self.page.update()
+
+        add_dialog.actions[1].on_click = close_dialog
 
     def open_edit_proyek_dialog(self, e, proyek_data):
         proyek_data_dict = {
@@ -445,7 +457,7 @@ class ProyekManager:
             "budget": proyek_data[6],
         }
         edit_dialog = EditProyekDialog(self.page, proyek_data_dict, self.refresh_data)
-        self.page.overlay.append(edit_dialog)
+        self.page.dialog = edit_dialog
         edit_dialog.open = True
         self.page.update()
 
@@ -454,11 +466,11 @@ class ProyekManager:
             title=ft.Text("Konfirmasi Hapus"),
             content=ft.Text("Apakah Anda yakin ingin menghapus proyek ini?"),
             actions=[
-                ft.TextButton("Ya", on_click=lambda e: self.delete_proyek(proyek_id)),
+                ft.TextButton("Ya", on_click=lambda e: [self.delete_proyek(proyek_id), self.close_dialog(e)]),
                 ft.TextButton("Tidak", on_click=lambda e: self.close_dialog(e)),
             ],
         )
-        self.page.overlay.append(confirm)
+        self.page.dialog = confirm
         confirm.open = True
         self.page.update()
 
@@ -468,18 +480,21 @@ class ProyekManager:
         self.refresh_data()
 
     def close_dialog(self, e):
-        self.page.overlay.clear()
+        if self.page and self.page.dialog:
+            self.page.dialog.open = False
+            self.page.dialog = None
         self.page.update()
         
     def add_proyek_to_database(self, nama, status, deskripsi, tanggal_mulai, tanggal_selesai, budget):
-            self.database.addProyek(nama, status, deskripsi, tanggal_mulai, tanggal_selesai, budget)
-            show_snackbar(self.page, "Proyek berhasil ditambahkan")
-            self.page.overlay.clear()
-            self.page.update()
-            self.refresh_data()
+        self.database.addProyek(nama, status, deskripsi, tanggal_mulai, tanggal_selesai, budget)
+        show_snackbar(self.page, "Proyek berhasil ditambahkan")
+        self.page.overlay.clear()
+        self.page.update()
+        self.refresh_data()
 
     def refresh_data(self):
         self.load_proyek(None)
+        self.page.update()
 
     def prev_page(self, e):
         if self.current_page > 1:
