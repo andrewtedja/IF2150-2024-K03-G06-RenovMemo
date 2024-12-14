@@ -8,11 +8,13 @@ from Navbar import RenovMemoNavbar
 
 def main(page: ft.Page):
     page.title = "RenovMemo"
-    navbar = RenovMemoNavbar(page)  
+
+    navbar = RenovMemoNavbar(page)
 
     # Initialize FilePicker
     file_picker = ft.FilePicker()
     page.overlay.append(file_picker)
+    page.update()
 
     def route_change(e):
         page.views.clear()
@@ -23,10 +25,7 @@ def main(page: ft.Page):
             page.views.append(
                 ft.View(
                     "/proyek",
-                    controls=[
-                        navbar,
-                        manager.build()
-                    ],
+                    controls=[navbar, manager.build()],
                 )
             )
         # TUGAS
@@ -39,22 +38,16 @@ def main(page: ft.Page):
             page.views.append(
                 ft.View(
                     "/tugas",
-                    controls=[
-                        navbar,
-                        tugas_manager.build()
-                    ],
+                    controls=[navbar, tugas_manager.build()],
                 )
             )
         # INSPIRASI
         elif page.route.startswith("/inspirasi"):
-            inspirasi_manager = InspirasiProyekManager(page, file_picker)
+            inspirasi_manager = InspirasiProyekManager(page, file_picker)  # Pass the same FilePicker
             page.views.append(
                 ft.View(
                     "/inspirasi",
-                    controls=[
-                        navbar,
-                        inspirasi_manager.build()
-                    ],
+                    controls=[navbar, inspirasi_manager.build()],
                 )
             )
 
@@ -70,7 +63,7 @@ def main(page: ft.Page):
     page.on_route_change = route_change
     page.on_view_pop = view_pop
 
-    # Set the default route
+    # Set default route
     page.go("/proyek")
 
 ft.app(target=main)
