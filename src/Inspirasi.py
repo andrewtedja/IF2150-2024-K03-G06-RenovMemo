@@ -305,7 +305,6 @@ class DetailInspirasiDialog(ft.AlertDialog):
             self.page.dialog.open = False
             self.page.dialog = None
         self.page.update()
-
 class InspirasiProyekManager:
     def __init__(self, page: ft.Page, file_picker: ft.FilePicker):
         self.page = page
@@ -316,11 +315,13 @@ class InspirasiProyekManager:
         self.items_per_page = 5
         self.total_pages = 1
         self.inspirasi_list = []
+
         self.title = ft.Container(
             content=ft.Text("Daftar Inspirasi Proyek", size=28, weight=ft.FontWeight.BOLD),
             alignment=ft.alignment.center,
             padding=ft.padding.all(20),
         )
+
         self.add_inspirasi_button = ft.Container(
             content=ft.Row(
                 controls=[
@@ -339,12 +340,11 @@ class InspirasiProyekManager:
             padding=ft.padding.symmetric(horizontal=20, vertical=10),
         )
 
-        # Inspirasi Table
         self.inspirasi_table = ft.DataTable(
             columns=[
                 ft.DataColumn(ft.Text("Nama", weight=ft.FontWeight.BOLD)),
                 ft.DataColumn(ft.Text("Deskripsi", weight=ft.FontWeight.BOLD)),
-                ft.DataColumn(ft.Text("Rincian", weight=ft.FontWeight.BOLD)),
+                ft.DataColumn(ft.Text("Aksi", weight=ft.FontWeight.BOLD)),
             ],
             rows=[],
             border=ft.border.all(2, "lightgray"),
@@ -354,27 +354,12 @@ class InspirasiProyekManager:
             width=2000
         )
 
-        self.inspirasi_table_container = ft.Container(
-            content=self.inspirasi_table,
-            alignment=ft.alignment.center,
-            padding=ft.padding.symmetric(vertical=20),
-            width=2000,  
-        )
-
-        self.prev_button = ft.ElevatedButton(
-            text="Sebelum",
-            on_click=self.prev_page,
-            disabled=True,
-        )
-        self.next_button = ft.ElevatedButton(
-            text="Lanjut",
-            on_click=self.next_page,
-            disabled=True,
-        )
-        self.page_label = ft.Text("Page 1 of 1")
-
         self.pagination = ft.Row(
-            controls=[self.prev_button, self.page_label, self.next_button],
+            controls=[
+                ft.ElevatedButton(text="Sebelum", on_click=self.prev_page, disabled=True),
+                ft.Text("Page 1 of 1"),
+                ft.ElevatedButton(text="Lanjut", on_click=self.next_page, disabled=True),
+            ],
             alignment=ft.MainAxisAlignment.CENTER,
             spacing=20,
         )
@@ -383,10 +368,10 @@ class InspirasiProyekManager:
             controls=[
                 self.title,
                 self.add_inspirasi_button,
-                self.inspirasi_table_container,
+                self.inspirasi_table,
                 self.pagination,
             ],
-            spacing=20, 
+            spacing=20,
         )
 
         self.load_inspirasi()
@@ -396,7 +381,6 @@ class InspirasiProyekManager:
         total_items = len(self.inspirasi_list)
         self.total_pages = max(1, (total_items + self.items_per_page - 1) // self.items_per_page)
 
-        # Pagination
         if self.current_page > self.total_pages:
             self.current_page = self.total_pages
         elif self.current_page < 1:
@@ -407,43 +391,42 @@ class InspirasiProyekManager:
         paginated_inspirasi = self.inspirasi_list[start_idx:end_idx]
 
         self.inspirasi_table.rows.clear()
-        if not paginated_inspirasi:
-            self.page_label.value = f"Page {self.current_page} of {self.total_pages}"
-            self.prev_button.disabled = self.current_page <= 1
-            self.next_button.disabled = self.current_page >= self.total_pages
-            self.page.update()
-            return
-
         for insp in paginated_inspirasi:
+            delete_handler = lambda e, insp_id=insp[0]: self.open_delete_inspirasi_dialog(e, insp_id)
             view_handler = lambda e, insp_id=insp[0]: self.view_rincian(e, insp_id)
+
             self.inspirasi_table.rows.append(
                 ft.DataRow(
                     cells=[
                         ft.DataCell(ft.Text(insp[1], size=16)),
                         ft.DataCell(ft.Text(insp[2], size=16, overflow="ellipsis")),
                         ft.DataCell(
-                            ft.ElevatedButton(
-                                text="Lihat",
-                                style=ft.ButtonStyle(
-                                    color="white",
-                                    bgcolor="green",
-                                    padding=ft.padding.symmetric(horizontal=10, vertical=5),
-                                ),
-                                on_click=view_handler,
+                            ft.Row(
+                                controls=[
+                                    ft.ElevatedButton(
+                                        text="Lihat",
+                                        style=ft.ButtonStyle(
+                                            color="white",
+                                            bgcolor="green",
+                                            padding=ft.padding.symmetric(horizontal=10, vertical=5),
+                                        ),
+                                        on_click=view_handler,
+                                    ),
+                                    ft.IconButton(
+                                        icon=ft.icons.DELETE, tooltip="Hapus Inspirasi", on_click=delete_handler
+                                    ),
+                                ],
+                                spacing=10,
                             )
                         ),
                     ]
                 )
             )
 
-        self.page_label.value = f"Page {self.current_page} of {self.total_pages}"
-        self.prev_button.disabled = self.current_page <= 1
-        self.next_button.disabled = self.current_page >= self.total_pages
         self.page.update()
 
     def open_add_inspirasi_dialog(self, e):
         add_dialog = AddInspirasiDialog(self.page, self.add_inspirasi_to_database, self.file_picker)
-        self.file_picker.on_result = add_dialog.on_file_picker_result
         self.page.dialog = add_dialog
         add_dialog.open = True
         self.page.update()
@@ -453,9 +436,33 @@ class InspirasiProyekManager:
         show_snackbar(self.page, "Inspirasi berhasil ditambahkan.")
         self.refresh_data()
 
+    def open_delete_inspirasi_dialog(self, e, inspirasi_id):
+        confirm_dialog = ft.AlertDialog(
+            title=ft.Text("Konfirmasi Hapus"),
+            content=ft.Text("Apakah Anda yakin ingin menghapus inspirasi ini?"),
+            actions=[
+                ft.TextButton("Ya", on_click=lambda e: self.delete_inspirasi(inspirasi_id)),
+                ft.TextButton("Tidak", on_click=self.close_dialog),
+            ],
+        )
+        self.page.dialog = confirm_dialog
+        confirm_dialog.open = True
+        self.page.update()
+
+    def delete_inspirasi(self, inspirasi_id):
+        self.database.deleteInspirasi(inspirasi_id)
+        show_snackbar(self.page, "Inspirasi berhasil dihapus.")
+        self.refresh_data()
+        self.close_dialog(None)
+
     def refresh_data(self):
         self.current_page = 1
         self.load_inspirasi()
+
+    def close_dialog(self, e=None):
+        if self.page.dialog:
+            self.page.dialog.open = False
+            self.page.dialog = None
         self.page.update()
 
     def view_rincian(self, e, insp_id):
@@ -473,14 +480,12 @@ class InspirasiProyekManager:
             detail_dialog = DetailInspirasiDialog(
                 self.page,
                 inspirasi_data,
-                self.refresh_data,  
+                self.refresh_data,
                 self.file_picker,
             )
             self.page.dialog = detail_dialog
             detail_dialog.open = True
             self.page.update()
-        else:
-            show_snackbar(self.page, "Inspirasi tidak ditemukan.")
 
     def prev_page(self, e):
         if self.current_page > 1:
