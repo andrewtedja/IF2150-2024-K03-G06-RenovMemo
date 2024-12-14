@@ -300,23 +300,14 @@ def checkTugasId(tugas_id:int) -> bool:
 
 # Inspirasi Functions
 
-def addInspirasi(nama: str, deskripsi: str, gambar_path: str = None, referensi: str = None):
+def addInspirasi(nama: str, deskripsi: str, gambar_data: bytes = None, referensi: str = None):
     global conn
     if conn:
         cursor = conn.cursor()
-        if gambar_path and os.path.exists(gambar_path):
-            try:
-                with open(gambar_path, 'rb') as f:
-                    inspirasi_gambar_blob = f.read()
-            except Exception as e:
-                print(f"Failed to read image: {e}")
-                inspirasi_gambar_blob = None
-        else:
-            inspirasi_gambar_blob = None
         cursor.execute('''
             INSERT INTO inspirasi (inspirasi_nama, inspirasi_deskripsi, inspirasi_gambar, inspirasi_referensi)
             VALUES (?, ?, ?, ?)
-        ''', (nama, deskripsi, inspirasi_gambar_blob, referensi))
+        ''', (nama, deskripsi, gambar_data, referensi))
         conn.commit()
         print(f"Inspirasi '{nama}' added successfully.")
     else:

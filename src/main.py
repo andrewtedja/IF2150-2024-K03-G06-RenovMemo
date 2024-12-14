@@ -1,6 +1,6 @@
 from database import initializeDatabase, closeDatabase
 import flet as ft
-from Proyek import ProyekManager
+from proyek import ProyekManager
 from Tugas import TugasManager
 from Inspirasi import InspirasiProyekManager
 from Navbar import RenovMemoNavbar
@@ -8,7 +8,7 @@ from Navbar import RenovMemoNavbar
 
 def main(page: ft.Page):
     page.title = "RenovMemo"
-    navbar = RenovMemoNavbar(page)
+    navbar = RenovMemoNavbar(page)  
 
     # Initialize FilePicker
     file_picker = ft.FilePicker()
