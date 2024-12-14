@@ -20,14 +20,12 @@ class AddInspirasiDialog(ft.AlertDialog):
         self.file_picker = file_picker
         self.chosen_image_data = None
         self.chosen_image_name = ft.Text("Belum ada gambar yang dipilih.")
-
         self.nama_label = ft.Text("Nama Inspirasi", size=14)
         self.nama_input = ft.TextField(
             label="Masukkan nama inspirasi",
             expand=1,
             width=600,
         )
-
         self.deskripsi_label = ft.Text("Deskripsi Inspirasi", size=14)
         self.deskripsi_input = ft.TextField(
             label="Masukkan deskripsi inspirasi",
@@ -36,26 +34,23 @@ class AddInspirasiDialog(ft.AlertDialog):
             expand=1,
             width=600,
         )
-
         self.referensi_label = ft.Text("Referensi Inspirasi (opsional)", size=14)
         self.referensi_input = ft.TextField(
             label="Masukkan referensi inspirasi",
             expand=1,
             width=600,
         )
-
         self.gambar_button = ft.ElevatedButton(
             "Pilih Gambar",
-            on_click=lambda e: self.file_picker.pick_files(allow_multiple=False)
+            on_click=self.pick_image
         )
-
         self.content = ft.Container(
-            height=500,  
+            height=500,
             content=ft.Column(
                 [
                     self.nama_label,
                     self.nama_input,
-                    ft.Container(height=10),  
+                    ft.Container(height=10),
                     self.deskripsi_label,
                     self.deskripsi_input,
                     ft.Container(height=10),
@@ -65,7 +60,7 @@ class AddInspirasiDialog(ft.AlertDialog):
                     self.gambar_button,
                     self.chosen_image_name,
                 ],
-                spacing=5 
+                spacing=5
             ),
             alignment=ft.alignment.center,
             padding=ft.padding.all(20),
@@ -75,9 +70,18 @@ class AddInspirasiDialog(ft.AlertDialog):
             ft.TextButton(text="Batal", on_click=self.close_dialog),
         ]
 
+    def pick_image(self, e):
+        self.file_picker.pick_files(allow_multiple=False, file_type="image")
+
     def on_file_picker_result(self, e: ft.FilePickerResultEvent):
         if e.files and len(e.files) > 0:
-            file_path = e.files[0].path
+            file = e.files[0]
+            file_ext = os.path.splitext(file.path)[1].lower()
+            if file_ext not in [".png", ".jpg", ".jpeg", ".gif", ".bmp"]:
+                show_snackbar(self.page, "Harap pilih file gambar yang valid.")
+                self.page.update()
+                return
+            file_path = file.path
             if file_path and os.path.exists(file_path):
                 try:
                     with open(file_path, "rb") as f:
@@ -98,10 +102,13 @@ class AddInspirasiDialog(ft.AlertDialog):
         nama = self.nama_input.value.strip()
         deskripsi = self.deskripsi_input.value.strip()
         referensi = self.referensi_input.value.strip()
-
         if nama and deskripsi:
-            self.on_add_callback(nama, deskripsi, self.chosen_image_data, referensi)
-            self.close_dialog(e)
+            if self.chosen_image_data:
+                self.on_add_callback(nama, deskripsi, self.chosen_image_data, referensi)
+                self.close_dialog(e)
+            else:
+                show_snackbar(self.page, "Mohon pilih gambar untuk inspirasi.")
+                self.page.update()
         else:
             show_snackbar(self.page, "Mohon isi semua field")
             self.page.update()
@@ -109,6 +116,7 @@ class AddInspirasiDialog(ft.AlertDialog):
     def close_dialog(self, e):
         self.open = False
         self.page.dialog = None
+        self.file_picker.on_result = None
         self.page.update()
 
 class EditInspirasiDialog(ft.AlertDialog):
@@ -120,7 +128,6 @@ class EditInspirasiDialog(ft.AlertDialog):
         self.chosen_image_data = None
         self.chosen_image_name = ft.Text("Belum ada gambar baru yang dipilih.")
         self.file_picker = file_picker
-
         self.nama_label = ft.Text("Nama Inspirasi", size=14)
         self.nama_input = ft.TextField(
             value=inspirasi_data["inspirasi_nama"],
@@ -128,7 +135,6 @@ class EditInspirasiDialog(ft.AlertDialog):
             expand=1,
             width=600,
         )
-
         self.deskripsi_label = ft.Text("Deskripsi Inspirasi", size=14)
         self.deskripsi_input = ft.TextField(
             value=inspirasi_data["inspirasi_deskripsi"],
@@ -138,7 +144,6 @@ class EditInspirasiDialog(ft.AlertDialog):
             expand=1,
             width=600,
         )
-
         self.referensi_label = ft.Text("Referensi Inspirasi (opsional)", size=14)
         self.referensi_input = ft.TextField(
             value=inspirasi_data["inspirasi_referensi"],
@@ -146,14 +151,12 @@ class EditInspirasiDialog(ft.AlertDialog):
             expand=1,
             width=600,
         )
-
         self.gambar_button = ft.ElevatedButton(
             text="Pilih Gambar (opsional)",
-            on_click=lambda e: self.file_picker.pick_files(allow_multiple=False)
+            on_click=self.pick_image
         )
-
         self.content = ft.Container(
-            height=500,  
+            height=500,
             content=ft.Column(
                 [
                     self.nama_label,
@@ -178,9 +181,18 @@ class EditInspirasiDialog(ft.AlertDialog):
             ft.TextButton(text="Batal", on_click=self.close_dialog),
         ]
 
+    def pick_image(self, e):
+        self.file_picker.pick_files(allow_multiple=False, file_type="image")
+
     def on_file_picker_result(self, e: ft.FilePickerResultEvent):
         if e.files and len(e.files) > 0:
-            file_path = e.files[0].path
+            file = e.files[0]
+            file_ext = os.path.splitext(file.path)[1].lower()
+            if file_ext not in [".png", ".jpg", ".jpeg", ".gif", ".bmp"]:
+                show_snackbar(self.page, "Harap pilih file gambar yang valid.")
+                self.page.update()
+                return
+            file_path = file.path
             if file_path and os.path.exists(file_path):
                 try:
                     with open(file_path, "rb") as f:
@@ -201,12 +213,10 @@ class EditInspirasiDialog(ft.AlertDialog):
         nama = self.nama_input.value.strip()
         deskripsi = self.deskripsi_input.value.strip()
         referensi = self.referensi_input.value.strip()
-
         if not (nama and deskripsi):
             show_snackbar(self.page, "Mohon isi semua field")
             self.page.update()
             return
-
         database.editInspirasi(
             inspirasi_id=self.inspirasi_id,
             inspirasi_nama=nama,
@@ -221,6 +231,7 @@ class EditInspirasiDialog(ft.AlertDialog):
     def close_dialog(self, e):
         self.open = False
         self.page.dialog = None
+        self.file_picker.on_result = None
         self.page.update()
 
 class DetailInspirasiDialog(ft.AlertDialog):
@@ -230,8 +241,7 @@ class DetailInspirasiDialog(ft.AlertDialog):
         self.inspirasi_data = inspirasi_data
         self.on_update_callback = on_update_callback
         self.file_picker = file_picker
-        self.confirm_dialog = None  # Menyimpan referensi ke dialog konfirmasi
-
+        self.confirm_dialog = None
         self.content = ft.Container(
             width=600,
             height=500,
@@ -248,8 +258,8 @@ class DetailInspirasiDialog(ft.AlertDialog):
                         content=ft.Image(
                             src_base64=self.inspirasi_data["inspirasi_gambar"],
                             fit="contain",
-                            width=500, 
-                            height=250,  
+                            width=500,
+                            height=250,
                         ) if self.inspirasi_data["inspirasi_gambar"] else ft.Text("No image provided", size=16),
                         padding=ft.padding.only(top=10),
                     ),
@@ -265,6 +275,7 @@ class DetailInspirasiDialog(ft.AlertDialog):
             ft.ElevatedButton(text="Hapus", on_click=self.delete_inspirasi),
             ft.TextButton(text="Tutup", on_click=self.close_dialog),
         ]
+
     def open_edit_dialog(self, e):
         edit_dialog = EditInspirasiDialog(self.page, self.inspirasi_data, self.on_update_callback, self.file_picker)
         self.file_picker.on_result = edit_dialog.on_file_picker_result
@@ -305,6 +316,7 @@ class DetailInspirasiDialog(ft.AlertDialog):
             self.page.dialog.open = False
             self.page.dialog = None
         self.page.update()
+
 class InspirasiProyekManager:
     def __init__(self, page: ft.Page, file_picker: ft.FilePicker):
         self.page = page
@@ -315,13 +327,11 @@ class InspirasiProyekManager:
         self.items_per_page = 5
         self.total_pages = 1
         self.inspirasi_list = []
-
         self.title = ft.Container(
             content=ft.Text("Daftar Inspirasi Proyek", size=28, weight=ft.FontWeight.BOLD),
             alignment=ft.alignment.center,
             padding=ft.padding.all(20),
         )
-
         self.add_inspirasi_button = ft.Container(
             content=ft.Row(
                 controls=[
@@ -339,7 +349,6 @@ class InspirasiProyekManager:
             ),
             padding=ft.padding.symmetric(horizontal=20, vertical=10),
         )
-
         self.inspirasi_table = ft.DataTable(
             columns=[
                 ft.DataColumn(ft.Text("Nama", weight=ft.FontWeight.BOLD)),
@@ -353,7 +362,6 @@ class InspirasiProyekManager:
             column_spacing=100,
             width=2000
         )
-
         self.pagination = ft.Row(
             controls=[
                 ft.ElevatedButton(text="Sebelum", on_click=self.prev_page, disabled=True),
@@ -363,7 +371,6 @@ class InspirasiProyekManager:
             alignment=ft.MainAxisAlignment.CENTER,
             spacing=20,
         )
-
         self.main_column = ft.Column(
             controls=[
                 self.title,
@@ -373,28 +380,23 @@ class InspirasiProyekManager:
             ],
             spacing=20,
         )
-
         self.load_inspirasi()
 
     def load_inspirasi(self):
         self.inspirasi_list = self.database.getAllInspirasi()
         total_items = len(self.inspirasi_list)
         self.total_pages = max(1, (total_items + self.items_per_page - 1) // self.items_per_page)
-
         if self.current_page > self.total_pages:
             self.current_page = self.total_pages
         elif self.current_page < 1:
             self.current_page = 1
-
         start_idx = (self.current_page - 1) * self.items_per_page
         end_idx = start_idx + self.items_per_page
         paginated_inspirasi = self.inspirasi_list[start_idx:end_idx]
-
         self.inspirasi_table.rows.clear()
         for insp in paginated_inspirasi:
             delete_handler = lambda e, insp_id=insp[0]: self.open_delete_inspirasi_dialog(e, insp_id)
             view_handler = lambda e, insp_id=insp[0]: self.view_rincian(e, insp_id)
-
             self.inspirasi_table.rows.append(
                 ft.DataRow(
                     cells=[
@@ -422,11 +424,18 @@ class InspirasiProyekManager:
                     ]
                 )
             )
-
+        self.update_pagination_buttons()
         self.page.update()
+
+    def update_pagination_buttons(self):
+        self.pagination.controls[0].disabled = self.current_page <= 1
+        self.pagination.controls[2].disabled = self.current_page >= self.total_pages
+        self.pagination.controls[1].value = f"Page {self.current_page} of {self.total_pages}"
 
     def open_add_inspirasi_dialog(self, e):
         add_dialog = AddInspirasiDialog(self.page, self.add_inspirasi_to_database, self.file_picker)
+        self.file_picker.on_result = add_dialog.on_file_picker_result
+        self.file_picker.accept = "image/*"
         self.page.dialog = add_dialog
         add_dialog.open = True
         self.page.update()
@@ -476,7 +485,6 @@ class InspirasiProyekManager:
                 "inspirasi_gambar": image_base64,
                 "inspirasi_referensi": inspirasi[4],
             }
-
             detail_dialog = DetailInspirasiDialog(
                 self.page,
                 inspirasi_data,
