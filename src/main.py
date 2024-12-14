@@ -1,14 +1,15 @@
 from database import initializeDatabase, closeDatabase
 import flet as ft
-from proyek import ProyekManager
+from Proyek import ProyekManager
 from Tugas import TugasManager
 from Inspirasi import InspirasiProyekManager
 from Navbar import RenovMemoNavbar
-
+from Splash import splash_page  
 
 def main(page: ft.Page):
     page.title = "RenovMemo"
-    navbar = RenovMemoNavbar(page)  
+
+    navbar = RenovMemoNavbar(page)
 
     # Initialize FilePicker
     file_picker = ft.FilePicker()
@@ -17,8 +18,17 @@ def main(page: ft.Page):
     def route_change(e):
         page.views.clear()
 
-        # PROYEK
-        if page.route == "/" or page.route.startswith("/proyek"):
+        # SPLASH SCREEN
+        if page.route == "/" or page.route.startswith("/splash"):
+            page.views.append(
+                ft.View(
+                    "/splash",
+                    controls=[splash_page(page)]  
+                )
+            )
+
+        # MAIN APP (PROYEK)
+        elif page.route == "/main" or page.route.startswith("/proyek"):
             manager = ProyekManager(page)
             page.views.append(
                 ft.View(
@@ -29,6 +39,7 @@ def main(page: ft.Page):
                     ],
                 )
             )
+
         # TUGAS
         elif page.route.startswith("/tugas"):
             query_str = page.route.replace("/tugas?", "")
@@ -45,6 +56,7 @@ def main(page: ft.Page):
                     ],
                 )
             )
+
         # INSPIRASI
         elif page.route.startswith("/inspirasi"):
             inspirasi_manager = InspirasiProyekManager(page, file_picker)
@@ -70,7 +82,7 @@ def main(page: ft.Page):
     page.on_route_change = route_change
     page.on_view_pop = view_pop
 
-    # Set the default route
-    page.go("/proyek")
+    # default route
+    page.go("/splash")
 
 ft.app(target=main)
