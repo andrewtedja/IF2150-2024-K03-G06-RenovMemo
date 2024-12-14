@@ -220,6 +220,12 @@ class TugasManager:
 
         self.load_tugas()
 
+    def toggle_tugas_status(self, tugas_id, current_status):
+        new_status = "Selesai" if current_status != "Selesai" else "Sedang Berjalan"
+        database.editTugas(tugas_id=tugas_id, tugas_status=new_status)
+        show_snackbar(self.page, f"Status tugas berhasil diubah menjadi {new_status}.")
+        self.refresh_data()
+
     def load_tugas(self):
         self.tugas_list = database.getTugasWithProyek(self.proyek_id)
         # tugas_list: (tugas_id, tugas_nama, tugas_deskripsi, tugas_status, proyek_id)
@@ -247,11 +253,19 @@ class TugasManager:
             # tugas: (tugas_id, tugas_nama, tugas_deskripsi, tugas_status, proyek_id)
             delete_handler = lambda e, tid=tugas[0]: self.delete_tugas(e, tid)
             edit_handler = lambda e, tdata=tugas: self.open_edit_tugas_dialog(e, tdata)
+            toggle_status_handler = lambda e, tid=tugas[0], status=tugas[3]: self.toggle_tugas_status(tid, status)
+
+            text_color = (
+                "gray" if tugas[3] == "Belum Dimulai" else
+                "orange" if tugas[3] == "Sedang Berjalan" else
+                "green"
+            )
+
             self.tugas_table.rows.append(
                 ft.DataRow(
                     cells=[
                         ft.DataCell(ft.Text(tugas[1], size=16)),
-                        ft.DataCell(ft.Text(tugas[3], size=16)),
+                        ft.DataCell(ft.Text(tugas[3], size=16, color=text_color)),
                         ft.DataCell(ft.Text(tugas[2], size=16)),
                         ft.DataCell(
                             ft.Row(
@@ -273,6 +287,11 @@ class TugasManager:
                                             padding=ft.padding.symmetric(horizontal=10, vertical=5),
                                         ),
                                         on_click=delete_handler,
+                                    ),
+                                    ft.IconButton(
+                                        icon=ft.icons.DONE if tugas[3] != "Selesai" else ft.icons.CANCEL,
+                                        tooltip="Tandai Selesai" if tugas[3] != "Selesai" else "Tandai Belum Selesai",
+                                        on_click=toggle_status_handler,
                                     ),
                                 ],
                                 spacing=10,
