@@ -96,7 +96,8 @@ class AddProyekDialog(ft.AlertDialog):
             return False
 
     def close_dialog(self, e):
-        self.page.overlay.remove(self)
+        if self.page.overlay:
+            self.page.overlay.remove(self)
         self.page.update()
 
 class EditProyekDialog(ft.AlertDialog):
@@ -179,7 +180,8 @@ class EditProyekDialog(ft.AlertDialog):
             return False
 
     def close_dialog(self, e):
-        self.page.overlay.remove(self)
+        if self.page.overlay:
+            self.page.overlay.remove(self)
         self.page.update()
 
 class DetailProyekDialog(ft.AlertDialog):
@@ -240,7 +242,8 @@ class DetailProyekDialog(ft.AlertDialog):
         self.close_dialog(None)
 
     def close_dialog(self, e):
-        self.page.overlay.remove(self)
+        if self.page.overlay:
+            self.page.overlay.remove(self)
         self.page.update()
 
 class ProyekManager:

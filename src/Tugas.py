@@ -50,7 +50,8 @@ class AddTugasDialog(ft.AlertDialog):
         self.close_dialog(e)
 
     def close_dialog(self, e):
-        self.page.overlay.remove(self)
+        if self.page.overlay:
+            self.page.overlay.remove(self)
         self.page.update()
 
 class EditTugasDialog(ft.AlertDialog):
@@ -97,12 +98,14 @@ class EditTugasDialog(ft.AlertDialog):
         )
         show_snackbar(self.page, "Tugas berhasil diperbarui.")
         self.on_update_callback()
-        self.page.update()
-        self.refresh_data()
         self.close_dialog(e)
 
+    def refresh_data(self):
+        self.on_update_callback()
+
     def close_dialog(self, e):
-        self.page.overlay.remove(self)
+        if self.page.overlay:
+            self.page.overlay.remove(self)
         self.page.update()
 
 class TugasManager:
