@@ -47,6 +47,7 @@ class AddTugasDialog(ft.AlertDialog):
             return
 
         self.on_add_callback(nama, status, deskripsi, self.proyek_id)
+        show_snackbar(self.page, "Tugas berhasil ditambahkan.")
         self.close_dialog(e)
 
     def close_dialog(self, e):

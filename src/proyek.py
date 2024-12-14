@@ -88,7 +88,7 @@ class AddProyekDialog(ft.AlertDialog):
 
         self.on_add_callback(nama, status, deskripsi, tanggal_mulai, tanggal_selesai, budget_value)
         show_snackbar(self.page, "Proyek berhasil ditambahkan.")
-        self.close_dialog(e)  # Changed from self.close_add_proyek_dialog(e)
+        self.close_dialog(e)
         
     def validate_date(self, date_str):
         try:
