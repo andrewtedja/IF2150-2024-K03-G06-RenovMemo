@@ -24,11 +24,15 @@ class AddTugasDialog(ft.AlertDialog):
             label="Status Tugas",
             width=400
         )
+        self.estimasi_input = ft.TextField(label="Estimasi Biaya (Rupiah)", width=400)
+        self.biaya_aktual_input = ft.TextField(label="Biaya Aktual (Rupiah)", width=400)
 
         self.content = ft.Column([
             self.nama_input,
             self.deskripsi_input,
             self.status_input,
+            self.estimasi_input,
+            self.biaya_aktual_input,
         ], spacing=10)
         self.actions = [
             ft.ElevatedButton(text="Tambah", on_click=self.add_tugas),
@@ -39,12 +43,21 @@ class AddTugasDialog(ft.AlertDialog):
         nama = self.nama_input.value.strip()
         deskripsi = self.deskripsi_input.value.strip()
         status = self.status_input.value
+        estimasi = self.estimasi_input.value.strip()
+        biaya_aktual = self.biaya_aktual_input.value.strip()
 
-        if not (nama and status):
+        if not (nama and status and estimasi and biaya_aktual):
             show_snackbar(self.page, "Mohon isi semua field")
             return
 
-        self.on_add_callback(nama, status, deskripsi, self.proyek_id)
+        if not estimasi.isdigit() or not biaya_aktual.isdigit():
+            show_snackbar(self.page, "Estimasi dan Biaya Aktual harus berupa angka")
+            return
+
+        estimasi_value = int(estimasi)
+        biaya_aktual_value = int(biaya_aktual)
+
+        self.on_add_callback(nama, status, deskripsi, self.proyek_id, estimasi_value, biaya_aktual_value)
         show_snackbar(self.page, "Tugas berhasil ditambahkan.")
         self.close_dialog(e)
 
@@ -105,6 +118,89 @@ class EditTugasDialog(ft.AlertDialog):
             self.page.dialog = None
             self.page.update()
 
+class ViewBiayaDialog(ft.AlertDialog):
+    def __init__(self, page, tugas_data, on_update_callback):
+        super().__init__()
+        self.page = page
+        self.tugas_data = tugas_data
+        self.on_update_callback = on_update_callback
+        self.is_editing = False
+
+        self.estimasi_input = ft.TextField(
+            value=f"Rp. {tugas_data['estimated']:,}",
+            label="Estimasi Biaya (Rupiah)",
+            width=400,
+            read_only=True
+        )
+        self.biaya_aktual_input = ft.TextField(
+            value=f"Rp. {tugas_data['budget']:,}",
+            label="Biaya Aktual (Rupiah)",
+            width=400,
+            read_only=True
+        )
+
+        self.content = ft.Container(
+            content=ft.Column([
+                self.estimasi_input,
+                self.biaya_aktual_input,
+            ], spacing=10),
+            width=450,
+            padding=ft.padding.all(20),
+        )
+        self.edit_button = ft.ElevatedButton(text="Edit", on_click=self.toggle_edit)
+        self.close_button = ft.TextButton(text="Tutup", on_click=self.close_dialog)
+        self.actions = [
+            self.edit_button,
+            self.close_button,
+        ]
+
+    def toggle_edit(self, e):
+        if not self.is_editing:
+            self.is_editing = True
+            self.estimasi_input.read_only = False
+            self.biaya_aktual_input.read_only = False
+            self.estimasi_input.value = str(self.tugas_data["estimated"])
+            self.biaya_aktual_input.value = str(self.tugas_data["budget"])
+            self.edit_button.text = "Simpan"
+        else:
+            estimasi = self.estimasi_input.value.strip().replace(",", "").replace("Rp.", "")
+            biaya_aktual = self.biaya_aktual_input.value.strip().replace(",", "").replace("Rp.", "")
+
+            if not (estimasi and biaya_aktual):
+                show_snackbar(self.page, "Mohon isi semua field")
+                return
+
+            if not estimasi.isdigit() or not biaya_aktual.isdigit():
+                show_snackbar(self.page, "Estimasi dan Biaya Aktual harus berupa angka")
+                return
+
+            estimasi_value = int(estimasi)
+            biaya_aktual_value = int(biaya_aktual)
+
+            # Correctly map to 'estimated' and 'budget'
+            database.editTugas(
+                tugas_id=self.tugas_data["tugas_id"],
+                estimated=estimasi_value,      # Correct parameter name
+                budget=biaya_aktual_value     # Correct parameter name
+            )
+            show_snackbar(self.page, "Biaya berhasil diperbarui.")
+            self.on_update_callback()
+
+            self.is_editing = False
+            self.estimasi_input.read_only = True
+            self.biaya_aktual_input.read_only = True
+            self.estimasi_input.value = f"Rp. {estimasi_value:,}"
+            self.biaya_aktual_input.value = f"Rp. {biaya_aktual_value:,}"
+            self.edit_button.text = "Edit"
+
+        self.page.update()
+
+    def close_dialog(self, e):
+        self.open = False
+        if self.page:
+            self.page.dialog = None
+            self.page.update()
+
 class TugasManager:
     def __init__(self, page: ft.Page, proyek_id: int):
         self.page = page
@@ -118,11 +214,11 @@ class TugasManager:
 
         proyek_data = database.getProyek(self.proyek_id)
         if proyek_data:
-            proyek_name, proyek_status, proyek_deskripsi, proyek_mulai, proyek_selesai, proyek_budget = proyek_data
+            proyek_name, proyek_status, proyek_deskripsi, proyek_mulai, proyek_selesai = proyek_data
             proyek_title = f"Proyek: {proyek_name}"
             proyek_info = f"Status: {proyek_status} | {proyek_mulai} - {proyek_selesai}"
             proyek_description = f"Deskripsi: {proyek_deskripsi}"
-            budget_text = f"Budget: Rp. {proyek_budget:,}"
+
             self.tugas_list = database.getTugasWithProyek(self.proyek_id)
 
             completed_tasks = len([t for t in self.tugas_list if t[3] == "Selesai"])
@@ -130,23 +226,25 @@ class TugasManager:
             total_tasks = len(self.tugas_list)
             progress_value = (completed_tasks * 1 + in_progress_tasks * 0.5) / total_tasks if total_tasks > 0 else 0.0
 
-            #  progress bar
             progress_percentage = int(progress_value * 100)
             self.progress_text = ft.Text(f"{progress_percentage}%", size=16, weight=ft.FontWeight.BOLD)
             self.progress_bar = ft.ProgressBar(value=progress_value, width=400)
             self.deskripsi_display = ft.Text(proyek_description, size=14)
             self.proyek_info_text = ft.Text(proyek_info, size=14)
-            self.budget_display = ft.Text(budget_text, size=16, weight=ft.FontWeight.BOLD)
+
+            # Calculate Total Biaya
+            self.total_biaya = sum(t[5] for t in self.tugas_list)  # Assuming budget is at index 5
+            self.total_biaya_text = ft.Text(f"Total Biaya: Rp. {self.total_biaya:,}", size=16, weight=ft.FontWeight.BOLD)
         else:
             proyek_title = "Proyek Tidak Ditemukan"
             proyek_info = ""
             proyek_description = "Deskripsi: -"
-            budget_text = "Budget: -"
             self.progress_text = ft.Text("0%", size=16, weight=ft.FontWeight.BOLD)
             self.progress_bar = ft.ProgressBar(value=0.0, width=400)
             self.deskripsi_display = ft.Text(proyek_description, size=14)
             self.proyek_info_text = ft.Text("Proyek tidak ditemukan", size=16)
-            self.budget_display = ft.Text(budget_text, size=16, weight=ft.FontWeight.BOLD)
+            self.total_biaya = 0
+            self.total_biaya_text = ft.Text(f"Total Biaya: Rp. {self.total_biaya:,}", size=16, weight=ft.FontWeight.BOLD)
 
         self.title = ft.Container(
             content=ft.Text(proyek_title, size=28, weight=ft.FontWeight.BOLD),
@@ -156,7 +254,7 @@ class TugasManager:
 
         self.proyek_info_text = ft.Text(proyek_info, size=14)
         self.deskripsi_display = ft.Text(proyek_description, size=14)
-        self.budget_display = ft.Text(budget_text, size=16, weight=ft.FontWeight.BOLD)
+        self.total_biaya_text = ft.Text(f"Total Biaya: Rp. {self.total_biaya:,}", size=16, weight=ft.FontWeight.BOLD)
 
         self.add_tugas_button = ft.ElevatedButton(
             text="Tambah Tugas",
@@ -224,9 +322,8 @@ class TugasManager:
                 self.proyek_info_text,
                 ft.Divider(),
                 self.deskripsi_display,
-                ft.Divider(),
-                self.budget_display,
                 self.progress_display, 
+                self.total_biaya_text,
                 ft.Divider(),
                 ft.Text("Daftar Tugas", size=20, weight=ft.FontWeight.BOLD),
                 ft.Container(
@@ -261,6 +358,11 @@ class TugasManager:
         self.progress_bar.value = progress_value
         progress_percentage = int(progress_value * 100)
         self.progress_text.value = f"{progress_percentage}%"
+
+        # Calculate Total Biaya
+        self.total_biaya = sum(t[5] for t in self.tugas_list)  # Assuming budget is at index 5
+        self.total_biaya_text.value = f"Total Biaya: Rp. {self.total_biaya:,}"
+
         self.total_pages = max(1, (total_tasks + self.items_per_page - 1) // self.items_per_page)
 
         if self.current_page > self.total_pages:
@@ -283,6 +385,7 @@ class TugasManager:
         for tugas in paginated_tugas:
             delete_handler = lambda e, tid=tugas[0]: self.delete_tugas(e, tid)
             edit_handler = lambda e, tdata=tugas: self.open_edit_tugas_dialog(e, tdata)
+            view_biaya_handler = lambda e, tdata=tugas: self.view_biaya(e, tdata)
             toggle_status_handler = lambda e, tid=tugas[0], status=tugas[3]: self.toggle_tugas_status(tid, status)
 
             text_color = (
@@ -318,6 +421,15 @@ class TugasManager:
                                         ),
                                         on_click=delete_handler,
                                     ),
+                                    ft.ElevatedButton(
+                                        text="Lihat Biaya",
+                                        style=ft.ButtonStyle(
+                                            color="white",
+                                            bgcolor="purple",
+                                            padding=ft.padding.symmetric(horizontal=10, vertical=5),
+                                        ),
+                                        on_click=view_biaya_handler,
+                                    ),
                                     ft.IconButton(
                                         icon=ft.icons.DONE if tugas[3] != "Selesai" else ft.icons.CANCEL,
                                         tooltip="Tandai Selesai" if tugas[3] != "Selesai" else "Tandai Belum Selesai",
@@ -336,6 +448,16 @@ class TugasManager:
         self.next_button.disabled = self.current_page >= self.total_pages
         self.page.update()
 
+    def view_biaya(self, e, tugas_data):
+        biaya_dialog = ViewBiayaDialog(self.page, {
+            "estimated": tugas_data[6],  # 'estimated' is at index 6
+            "budget": tugas_data[5],     # 'budget' is at index 5
+            "tugas_id": tugas_data[0]
+        }, self.refresh_data)
+        self.page.dialog = biaya_dialog
+        biaya_dialog.open = True
+        self.page.update()
+
     def open_add_tugas_dialog(self, e):
         add_dialog = AddTugasDialog(self.page, self.proyek_id, self.add_tugas_to_database)
         self.page.dialog = add_dialog
@@ -348,14 +470,22 @@ class TugasManager:
             "tugas_nama": tugas_data[1],
             "tugas_deskripsi": tugas_data[2],
             "tugas_status": tugas_data[3],
+            # Exclude 'estimated' and 'budget' from main edit dialog
         }
         edit_dialog = EditTugasDialog(self.page, tugas_data_dict, self.refresh_data)
         self.page.dialog = edit_dialog
         edit_dialog.open = True
         self.page.update()
 
-    def add_tugas_to_database(self, nama, status, deskripsi, proyek_id):
-        database.addTugas(nama, status, proyek_id, deskripsi)
+    def add_tugas_to_database(self, nama, status, deskripsi, proyek_id, estimasi, biaya_aktual):
+        database.addTugas(
+            tugas_nama=nama,
+            tugas_status=status,
+            proyek_id=proyek_id,
+            tugas_deskripsi=deskripsi,
+            budget=biaya_aktual,      # Correct mapping
+            estimated=estimasi        # Correct mapping
+        )
         show_snackbar(self.page, "Tugas berhasil ditambahkan")
         self.refresh_data()
 
@@ -406,8 +536,7 @@ class TugasManager:
 
 def main(page: ft.Page):
     page.title = "Tugas Manager"
-    proyek_id = 1  # 
+    proyek_id = 1  
     manager = TugasManager(page, proyek_id)
     page.add(manager.build())
     page.update()
-
