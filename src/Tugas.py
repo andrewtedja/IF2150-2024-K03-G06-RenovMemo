@@ -175,6 +175,7 @@ class TugasManager:
             border_radius=10,
             horizontal_margin=50,
             column_spacing=200,
+            width=2000
         )
 
         self.prev_button = ft.ElevatedButton(

@@ -352,13 +352,14 @@ class InspirasiProyekManager:
             border_radius=10,
             horizontal_margin=20,
             column_spacing=100,
+            width=2000
         )
 
         self.inspirasi_table_container = ft.Container(
             content=self.inspirasi_table,
             alignment=ft.alignment.center,
             padding=ft.padding.symmetric(vertical=20),
-            width=1200,  
+            width=2000,  
         )
 
         self.prev_button = ft.ElevatedButton(

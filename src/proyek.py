@@ -299,6 +299,7 @@ class ProyekManager:
             border_radius=10,
             horizontal_margin=20,
             column_spacing=100,
+            width=2000
         )
 
         self.prev_button = ft.ElevatedButton(
