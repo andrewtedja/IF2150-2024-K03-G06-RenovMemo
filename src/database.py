@@ -187,7 +187,6 @@ def checkProyekId(proyek_id:int) -> bool:
     row = getProyek(proyek_id)
     return bool(row)
 
-# Migration Function for Proyek Table
 
 def migrateProyekTable():
     global conn
@@ -196,19 +195,16 @@ def migrateProyekTable():
         return
     cursor = conn.cursor()
 
-    # Check existing columns in proyek table
     cursor.execute("PRAGMA table_info(proyek)")
     columns = cursor.fetchall()
     existing_columns = [col[1].lower() for col in columns]
 
-    # If 'budget' does not exist, no migration needed
     if 'budget' not in existing_columns:
         print("'proyek' table does not have 'budget' column. No migration required.")
         return
 
     print("Migrating 'proyek' table: Removing 'budget' field.")
 
-    # Create new table without 'budget' field
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS proyek_new (
             proyek_id INTEGER PRIMARY KEY,
@@ -220,17 +216,13 @@ def migrateProyekTable():
         )
     ''')
 
-    # Transfer data from old table to new table
     cursor.execute('''
         INSERT INTO proyek_new (proyek_id, proyek_nama, proyek_status, proyek_deskripsi, proyek_mulai, proyek_selesai)
         SELECT proyek_id, proyek_nama, proyek_status, proyek_deskripsi, proyek_mulai, proyek_selesai
         FROM proyek
     ''')
 
-    # Drop old table
     cursor.execute("DROP TABLE proyek")
-
-    # Rename new table to original name
     cursor.execute("ALTER TABLE proyek_new RENAME TO proyek")
 
     conn.commit()
@@ -371,8 +363,6 @@ def getTugas(tugas_id:int):
 def checkTugasId(tugas_id:int) -> bool:
     row = getTugas(tugas_id)
     return bool(row)
-
-# Inspirasi Functions
 
 def addInspirasi(nama: str, deskripsi: str, gambar_data: bytes = None, referensi: str = None):
     global conn
@@ -545,21 +535,16 @@ def deleteAllData():
     else:
         print("Database not initialized.")
 
-# Migration Function for Tugas Table
-
 def migrateTugasTable():
     global conn
     if not conn:
         print("Database not initialized.")
         return
     cursor = conn.cursor()
-
-    # Check existing columns in tugas table
     cursor.execute("PRAGMA table_info(tugas)")
     columns = cursor.fetchall()
     existing_columns = [col[1].lower() for col in columns]
 
-    # Add 'budget' column if it doesn't exist
     if 'budget' not in existing_columns:
         print("Adding 'budget' column to 'tugas' table.")
         try:
@@ -569,7 +554,6 @@ def migrateTugasTable():
     else:
         print("'budget' column already exists in 'tugas' table.")
 
-    # Add 'estimated' column if it doesn't exist
     if 'estimated' not in existing_columns:
         print("Adding 'estimated' column to 'tugas' table.")
         try:
