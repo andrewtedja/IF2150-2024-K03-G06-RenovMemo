@@ -379,6 +379,7 @@ class ProyekManager:
             view_handler = lambda e, pid=proyek[0]: self.view_rincian(pid)
             edit_handler = lambda e, pdata=proyek: self.open_edit_proyek_dialog(e, pdata)
             delete_handler = lambda e, pid=proyek[0]: self.open_delete_proyek_dialog(e, pid)
+            toggle_status_handler = lambda e, pid=proyek[0], status=proyek[2]: self.toggle_proyek_status(pid, status)
             self.proyek_table.rows.append(
                 ft.DataRow(
                     cells=[
@@ -409,6 +410,15 @@ class ProyekManager:
                                         on_click=edit_handler,
                                     ),
                                     ft.ElevatedButton(
+                                        text="Tandai Selesai" if proyek[2] != "Selesai" else "Tandai Belum Selesai",
+                                        style=ft.ButtonStyle(
+                                            color="white",
+                                            bgcolor="orange",
+                                            padding=ft.padding.symmetric(horizontal=10, vertical=5),
+                                        ),
+                                        on_click=toggle_status_handler,
+                                    ),
+                                    ft.ElevatedButton(
                                         text="Hapus",
                                         style=ft.ButtonStyle(
                                             color="white",
@@ -429,6 +439,12 @@ class ProyekManager:
         self.prev_button.disabled = self.current_page <= 1
         self.next_button.disabled = self.current_page >= self.total_pages
         self.page.update()
+
+    def toggle_proyek_status(self, proyek_id, current_status):
+        new_status = "Selesai" if current_status != "Selesai" else "Sedang Berjalan"
+        database.editProyek(proyek_id, proyek_status=new_status)
+        show_snackbar(self.page, f"Status proyek berhasil diubah menjadi {new_status}.")
+        self.refresh_data()
 
     def view_rincian(self, proyek_id):
         self.page.go(f"/tugas?proyek_id={proyek_id}")

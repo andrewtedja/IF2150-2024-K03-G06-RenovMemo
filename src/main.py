@@ -1,6 +1,6 @@
 from database import initializeDatabase, closeDatabase
 import flet as ft
-from proyek import ProyekManager
+from Proyek import ProyekManager
 from Tugas import TugasManager
 from Inspirasi import InspirasiProyekManager
 from Navbar import RenovMemoNavbar
