@@ -130,6 +130,9 @@ class TugasManager:
             total_tasks = len(self.tugas_list)
             progress_value = (completed_tasks * 1 + in_progress_tasks * 0.5) / total_tasks if total_tasks > 0 else 0.0
 
+            #  progress bar
+            progress_percentage = int(progress_value * 100)
+            self.progress_text = ft.Text(f"{progress_percentage}%", size=16, weight=ft.FontWeight.BOLD)
             self.progress_bar = ft.ProgressBar(value=progress_value, width=400)
             self.deskripsi_display = ft.Text(proyek_description, size=14)
             self.proyek_info_text = ft.Text(proyek_info, size=14)
@@ -139,6 +142,7 @@ class TugasManager:
             proyek_info = ""
             proyek_description = "Deskripsi: -"
             budget_text = "Budget: -"
+            self.progress_text = ft.Text("0%", size=16, weight=ft.FontWeight.BOLD)
             self.progress_bar = ft.ProgressBar(value=0.0, width=400)
             self.deskripsi_display = ft.Text(proyek_description, size=14)
             self.proyek_info_text = ft.Text("Proyek tidak ditemukan", size=16)
@@ -205,6 +209,15 @@ class TugasManager:
             spacing=20,
         )
 
+        self.progress_display = ft.Row(
+            controls=[
+                self.progress_bar,
+                self.progress_text
+            ],
+            alignment=ft.MainAxisAlignment.START,
+            spacing=10
+        )
+
         self.main_column = ft.Column(
             controls=[
                 self.title,
@@ -213,7 +226,7 @@ class TugasManager:
                 self.deskripsi_display,
                 ft.Divider(),
                 self.budget_display,
-                self.progress_bar,
+                self.progress_display, 
                 ft.Divider(),
                 ft.Text("Daftar Tugas", size=20, weight=ft.FontWeight.BOLD),
                 ft.Container(
@@ -246,7 +259,8 @@ class TugasManager:
         total_tasks = len(self.tugas_list)
         progress_value = (completed_tasks * 1 + in_progress_tasks * 0.5) / total_tasks if total_tasks > 0 else 0.0
         self.progress_bar.value = progress_value
-
+        progress_percentage = int(progress_value * 100)
+        self.progress_text.value = f"{progress_percentage}%"
         self.total_pages = max(1, (total_tasks + self.items_per_page - 1) // self.items_per_page)
 
         if self.current_page > self.total_pages:
@@ -392,7 +406,8 @@ class TugasManager:
 
 def main(page: ft.Page):
     page.title = "Tugas Manager"
-    proyek_id = 1
+    proyek_id = 1  # 
     manager = TugasManager(page, proyek_id)
     page.add(manager.build())
     page.update()
+
