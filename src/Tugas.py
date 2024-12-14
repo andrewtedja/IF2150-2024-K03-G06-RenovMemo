@@ -128,13 +128,14 @@ class TugasManager:
             proyek_name, proyek_status, proyek_deskripsi, proyek_mulai, proyek_selesai, proyek_budget = proyek_data
             proyek_title = f"Proyek: {proyek_name}"
             proyek_info = f"Status: {proyek_status} | {proyek_mulai} - {proyek_selesai}"
+            proyek_description = f"Deskripsi: {proyek_deskripsi}"
             budget_text = f"Budget: Rp. {proyek_budget}"
             self.tugas_list = database.getTugasWithProyek(self.proyek_id)
             
 
             # PROGRESS BAR (MASI PLACEHOLDER)
             self.progress_bar = ft.ProgressBar(value=0.5, width=400)
-
+            self.deskripsi_display = ft.Text(proyek_description, size=14)
             self.proyek_info_text = ft.Text(proyek_info, size=14)
             self.budget_display = ft.Text(budget_text, size=16, weight=ft.FontWeight.BOLD)
         else:
@@ -142,6 +143,7 @@ class TugasManager:
             proyek_info = ""
             budget_text = "Budget: -"
             self.progress_bar = ft.ProgressBar(value=0.0, width=400)
+            self.deskripsi_display = ft.Text(proyek_description, size=14)
             self.proyek_info_text = ft.Text("Proyek tidak ditemukan", size=16)
             self.budget_display = ft.Text(budget_text, size=16, weight=ft.FontWeight.BOLD)
 
@@ -152,6 +154,7 @@ class TugasManager:
         )
 
         self.proyek_info_text = ft.Text(proyek_info, size=14)
+        self.deskripsi_display = ft.Text(proyek_deskripsi, size=14)
         self.budget_display = ft.Text(budget_text, size=16, weight=ft.FontWeight.BOLD)
 
         self.add_tugas_button = ft.ElevatedButton(
@@ -200,6 +203,8 @@ class TugasManager:
             controls=[
                 self.title,
                 self.proyek_info_text,
+                ft.Divider(),
+                self.deskripsi_display,
                 ft.Divider(),
                 self.budget_display,
                 self.progress_bar,
