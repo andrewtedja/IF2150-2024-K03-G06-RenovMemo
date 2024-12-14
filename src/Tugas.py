@@ -177,11 +177,10 @@ class ViewBiayaDialog(ft.AlertDialog):
             estimasi_value = int(estimasi)
             biaya_aktual_value = int(biaya_aktual)
 
-            # Correctly map to 'estimated' and 'budget'
             database.editTugas(
                 tugas_id=self.tugas_data["tugas_id"],
-                estimated=estimasi_value,      # Correct parameter name
-                budget=biaya_aktual_value     # Correct parameter name
+                estimated=estimasi_value,      
+                budget=biaya_aktual_value     
             )
             show_snackbar(self.page, "Biaya berhasil diperbarui.")
             self.on_update_callback()
@@ -232,8 +231,8 @@ class TugasManager:
             self.deskripsi_display = ft.Text(proyek_description, size=14)
             self.proyek_info_text = ft.Text(proyek_info, size=14)
 
-            # Calculate Total Biaya
-            self.total_biaya = sum(t[5] for t in self.tugas_list)  # Assuming budget is at index 5
+            # Total Biaya
+            self.total_biaya = sum(t[5] for t in self.tugas_list)
             self.total_biaya_text = ft.Text(f"Total Biaya: Rp. {self.total_biaya:,}", size=16, weight=ft.FontWeight.BOLD)
         else:
             proyek_title = "Proyek Tidak Ditemukan"
@@ -359,8 +358,8 @@ class TugasManager:
         progress_percentage = int(progress_value * 100)
         self.progress_text.value = f"{progress_percentage}%"
 
-        # Calculate Total Biaya
-        self.total_biaya = sum(t[5] for t in self.tugas_list)  # Assuming budget is at index 5
+        #Total Biaya
+        self.total_biaya = sum(t[5] for t in self.tugas_list) 
         self.total_biaya_text.value = f"Total Biaya: Rp. {self.total_biaya:,}"
 
         self.total_pages = max(1, (total_tasks + self.items_per_page - 1) // self.items_per_page)
@@ -450,8 +449,8 @@ class TugasManager:
 
     def view_biaya(self, e, tugas_data):
         biaya_dialog = ViewBiayaDialog(self.page, {
-            "estimated": tugas_data[6],  # 'estimated' is at index 6
-            "budget": tugas_data[5],     # 'budget' is at index 5
+            "estimated": tugas_data[6], 
+            "budget": tugas_data[5],     
             "tugas_id": tugas_data[0]
         }, self.refresh_data)
         self.page.dialog = biaya_dialog
@@ -470,7 +469,6 @@ class TugasManager:
             "tugas_nama": tugas_data[1],
             "tugas_deskripsi": tugas_data[2],
             "tugas_status": tugas_data[3],
-            # Exclude 'estimated' and 'budget' from main edit dialog
         }
         edit_dialog = EditTugasDialog(self.page, tugas_data_dict, self.refresh_data)
         self.page.dialog = edit_dialog
@@ -483,8 +481,8 @@ class TugasManager:
             tugas_status=status,
             proyek_id=proyek_id,
             tugas_deskripsi=deskripsi,
-            budget=biaya_aktual,      # Correct mapping
-            estimated=estimasi        # Correct mapping
+            budget=biaya_aktual,     
+            estimated=estimasi       
         )
         show_snackbar(self.page, "Tugas berhasil ditambahkan")
         self.refresh_data()
