@@ -1,5 +1,3 @@
-# IF2150-2024-K03-G06-RenovMemo
-
 ## **Project Setup Instructions**
 
 Follow these steps to set up and run the project locally:
@@ -83,3 +81,19 @@ Follow these steps to set up and run the project locally:
 
 3. **Dependency Installation Issues**:
    If a dependency fails to install, verify compatibility with your Python version and operating system.
+
+4. **Flet Module Not Recognized After Installing Requirements**:
+   If you encounter the following error:
+   ```
+   Traceback (most recent call last):
+     File "src/main.py", line 2, in <module>
+       import flet as ft
+   ModuleNotFoundError: No module named 'flet'
+   ```
+   Run the following commands after activating your virtual environment:
+   ```bash
+   curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+   python get-pip.py
+   pip install -r requirements.txt
+   python src/main.py
+   ```
